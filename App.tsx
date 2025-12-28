@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage, KeywordMetric } from './types';
@@ -6,36 +7,76 @@ import {
   Zap, Copy, Loader2, Moon, Sun,
   Check, Sparkles, MessageSquare, 
   Send, Smartphone, BarChart3, Layout, ChevronUp, ChevronDown, 
-  Target, Flame, HelpCircle, MapPin
+  Target, Flame, HelpCircle, MapPin, Link as LinkIcon, Globe
 } from 'lucide-react';
 
 const COUNTRIES: Country[] = [
-  { name: "Afghanistan", capital: "Kabul" }, { name: "Albania", capital: "Tirana" }, { name: "Algeria", capital: "Algiers" },
-  { name: "Andorra", capital: "Andorra La Vella" }, { name: "Angola", capital: "Luanda" }, { name: "Antigua & Barbuda", capital: "Saint John's" },
-  { name: "Argentina", capital: "Buenos Aires" }, { name: "Armenia", capital: "Yerevan" }, { name: "Australia", capital: "Canberra" },
-  { name: "Austria", capital: "Vienna" }, { name: "Azerbaijan", capital: "Baku" }, { name: "Bahamas", capital: "Nassau" },
-  { name: "Bahrain", capital: "Manama" }, { name: "Bangladesh", capital: "Dhaka" }, { name: "Barbados", capital: "Bridgetown" },
-  { name: "Belarus", capital: "Minsk" }, { name: "Belgium", capital: "Brussels" }, { name: "Belize", capital: "Belmopan" },
-  { name: "Benin", capital: "Porto-Novo" }, { name: "Bhutan", capital: "Thimphu" }, { name: "Bolivia", capital: "Sucre" },
-  { name: "Bosnia & Herzegovina", capital: "Sarajevo" }, { name: "Botswana", capital: "Gaborone" }, { name: "Brazil", capital: "Brasilia" },
-  { name: "Brunei", capital: "Bandar Seri Begawan" }, { name: "Bulgaria", capital: "Sofia" }, { name: "Burkina Faso", capital: "Ouagadougou" },
-  { name: "Burundi", capital: "Gitega" }, { name: "Cabo Verde", capital: "Praia" }, { name: "Cambodia", capital: "Phnom Penh" },
-  { name: "Cameroon", capital: "Yaounde" }, { name: "Canada", capital: "Ottawa" }, { name: "Chile", capital: "Santiago" },
-  { name: "China", capital: "Beijing" }, { name: "Colombia", capital: "Bogotá" }, { name: "Costa Rica", capital: "San Jose" },
-  { name: "Croatia", capital: "Zagreb" }, { name: "Cuba", capital: "Havana" }, { name: "Denmark", capital: "Copenhagen" },
-  { name: "Egypt", capital: "Cairo" }, { name: "France", capital: "Paris" }, { name: "Germany", capital: "Berlin" },
-  { name: "India", capital: "New Delhi" }, { name: "Indonesia", capital: "Jakarta" }, { name: "Israel", capital: "Jerusalem" },
-  { name: "Italy", capital: "Rome" }, { name: "Japan", capital: "Tokyo" }, { name: "Mexico", capital: "Mexico City" },
-  { name: "Netherlands", capital: "Amsterdam" }, { name: "Nigeria", capital: "Abuja" }, { name: "Norway", capital: "Oslo" },
-  { name: "Pakistan", capital: "Islamabad" }, { name: "Philippines", capital: "Manila" }, { name: "Poland", capital: "Warsaw" },
-  { name: "Portugal", capital: "Lisbon" }, { name: "Russia", capital: "Moscow" }, { name: "Saudi Arabia", capital: "Riyadh" },
-  { name: "Singapore", capital: "Singapore" }, { name: "South Africa", capital: "Pretoria" }, { name: "South Korea", capital: "Seoul" },
-  { name: "Spain", capital: "Madrid" }, { name: "Switzerland", capital: "Bern" }, { name: "Thailand", capital: "Bangkok" },
-  { name: "Turkey", capital: "Ankara" }, { name: "Ukraine", capital: "Kyiv" }, { name: "United Kingdom", capital: "London" },
-  { name: "United States", capital: "Washington, D.C." }, { name: "Vietnam", capital: "Hanoi" }
+  { name: "United States", code: "US", capital: "Washington, D.C.", cities: ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose", "Austin"] },
+  { name: "United Kingdom", code: "GB", capital: "London", cities: ["London", "Birmingham", "Manchester", "Glasgow", "Liverpool", "Leeds", "Sheffield", "Edinburgh", "Bristol", "Leicester"] },
+  { name: "Canada", code: "CA", capital: "Ottawa", cities: ["Toronto", "Montreal", "Vancouver", "Calgary", "Edmonton", "Ottawa", "Winnipeg", "Quebec City", "Hamilton"] },
+  { name: "Australia", code: "AU", capital: "Canberra", cities: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Gold Coast", "Canberra", "Hobart"] },
+  { name: "Germany", code: "DE", capital: "Berlin", cities: ["Berlin", "Hamburg", "Munich", "Cologne", "Frankfurt", "Stuttgart", "Düsseldorf", "Dortmund", "Essen"] },
+  { name: "France", code: "FR", capital: "Paris", cities: ["Paris", "Marseille", "Lyon", "Toulouse", "Nice", "Nantes", "Strasbourg", "Montpellier", "Bordeaux"] },
+  { name: "India", code: "IN", capital: "New Delhi", cities: ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Ahmedabad", "Chennai", "Kolkata", "Surat", "Pune", "Jaipur"] },
+  { name: "Japan", code: "JP", capital: "Tokyo", cities: ["Tokyo", "Yokohama", "Osaka", "Nagoya", "Sapporo", "Fukuoka", "Kobe", "Kyoto", "Saitama"] },
+  { name: "Brazil", code: "BR", capital: "Brasilia", cities: ["São Paulo", "Rio de Janeiro", "Brasília", "Salvador", "Fortaleza", "Belo Horizonte", "Manaus", "Curitiba"] },
+  { name: "Mexico", code: "MX", capital: "Mexico City", cities: ["Mexico City", "Tijuana", "Ecatepec", "León", "Puebla", "Ciudad Juárez", "Guadalajara"] },
+  { name: "Spain", code: "ES", capital: "Madrid", cities: ["Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Málaga", "Murcia", "Palma"] },
+  { name: "Italy", code: "IT", capital: "Rome", cities: ["Rome", "Milan", "Naples", "Turin", "Palermo", "Genoa", "Bologna", "Florence"] },
+  { name: "Singapore", code: "SG", capital: "Singapore", cities: ["Singapore"] },
+  { name: "Netherlands", code: "NL", capital: "Amsterdam", cities: ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven", "Tilburg"] },
+  { name: "United Arab Emirates", code: "AE", capital: "Abu Dhabi", cities: ["Dubai", "Abu Dhabi", "Sharjah", "Al Ain", "Ajman"] },
+  { name: "South Africa", code: "ZA", capital: "Pretoria", cities: ["Johannesburg", "Cape Town", "Durban", "Pretoria", "Port Elizabeth", "Soweto"] },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
-const LOADING_MESSAGES = ["Scanning Global Trends...", "Synthesizing Humanized Copy...", "Injecting Viral Hooks...", "Mapping Local Intent...", "Architecting HTML Markup..."];
+const getFlagEmoji = (countryCode: string) => {
+  const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+};
+
+const LOADING_MESSAGES = [
+  "Performing Deep Internet Research...",
+  "Analyzing Competitor Content Gaps...",
+  "Identifying Trending Viral Hooks...",
+  "Synthesizing Humanized Perspectives...",
+  "Architecting High-Conversion HTML...",
+  "Injecting Local SEO Metadata...",
+  "Integrating Monetization Anchors..."
+];
+
+// Fixed StructuralMetric component with proper typing to avoid React key prop errors
+const StructuralMetric = ({ label, current, range }: { label: string; current: number | undefined; range: { min: number; max: number } | undefined }) => {
+  if (!range) return null;
+  const curr = current ?? 0;
+  const isUnder = curr < range.min;
+  const isOver = curr > range.max;
+  return (
+    <div className="flex flex-col items-center py-5 border-r last:border-r-0 border-slate-100 dark:border-slate-800">
+      <span className="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">{label}</span>
+      <div className="flex items-center gap-1">
+        <span className="text-xl font-black">{curr}</span>
+        {isUnder && <ChevronDown className="w-3 h-3 text-red-500" />}
+        {isOver && <ChevronUp className="w-3 h-3 text-red-500" />}
+      </div>
+      <span className="text-[9px] opacity-40 font-bold">{range.min} - {range.max}</span>
+    </div>
+  );
+};
+
+// Fixed KeywordPill component with proper typing to avoid React key prop errors
+const KeywordPill = ({ term }: { term: KeywordMetric }) => {
+  const diffColor: Record<string, string> = {
+    easy: 'border-emerald-500 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20',
+    medium: 'border-amber-500 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20',
+    hard: 'border-red-500 text-red-600 bg-red-50/50 dark:bg-red-950/20'
+  };
+  return (
+    <div className={`px-3 py-1.5 rounded-lg border-2 ${diffColor[term.difficulty] || diffColor.medium} flex items-center gap-2 transition-all hover:scale-105 shadow-sm`}>
+      <span className="text-[11px] font-bold">{term.keyword}</span>
+      <span className="text-[10px] font-black opacity-40 tabular-nums">{term.count}/{term.min}-{term.max}</span>
+    </div>
+  );
+};
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -55,6 +96,8 @@ const App: React.FC = () => {
   const [previewMode, setPreviewMode] = useState<'preview' | 'html'>('preview');
   const [copied, setCopied] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const selectedCountry = COUNTRIES.find(c => c.name === inputs.country) || COUNTRIES[0];
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('superpage_theme') || 'dark';
@@ -77,7 +120,7 @@ const App: React.FC = () => {
     if (!inputs.title.trim()) { setError("Focus keyword required."); return; }
     setLoading(true); setError(null);
     let msgIdx = 0;
-    const interval = setInterval(() => setLoadingStep(LOADING_MESSAGES[msgIdx++ % LOADING_MESSAGES.length]), 4000);
+    const interval = setInterval(() => setLoadingStep(LOADING_MESSAGES[msgIdx++ % LOADING_MESSAGES.length]), 4500);
     try {
       const result = await generateFullSuperPage(inputs, setLoadingStep);
       const seo = await analyzeSEOContent(inputs.title, inputs.secondaryKeywords, inputs.country, inputs.city, result.html);
@@ -87,7 +130,7 @@ const App: React.FC = () => {
         inputs: { ...inputs }, sources: result.sources, seoResult: seo
       };
       setCurrentBlog(newBlog);
-      setChatMessages([{ role: 'assistant', content: `Success! Local SEO for ${inputs.city} active. Score: ${seo.score}/100. Any virality adjustments needed?` }]);
+      setChatMessages([{ role: 'assistant', content: `SuperPage Live! 🚀 Research found trending gaps for ${inputs.city}. SEO Score: ${seo.score}/100. Affiliate link integrated. Ready for tweaks?` }]);
     } catch (err: any) { setError(err.message); }
     finally { clearInterval(interval); setLoading(false); }
   };
@@ -102,57 +145,27 @@ const App: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const chat = ai.chats.create({ 
         model: 'gemini-3-flash-preview', 
-        config: { systemInstruction: `You are an SEO Content Strategist. Help optimize "${currentBlog.title}". Make it more human, viral, and helpful.` } 
+        config: { systemInstruction: `You are an SEO Strategist. Help optimize "${currentBlog.title}". Your goal is maximum humanization and conversion.` } 
       });
       const response = await chat.sendMessage({ message: content });
-      setChatMessages(prev => [...prev, { role: 'assistant', content: response.text || 'Process completed.' }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: response.text || 'Thinking complete.' }]);
     } catch { 
-      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Connection timed out. Try again.' }]); 
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Connection lost. Try again.' }]); 
     } finally { setIsChatting(false); }
   };
 
-  const StructuralMetric = ({ label, current, range }: any) => {
-    const isUnder = current < range.min;
-    const isOver = current > range.max;
-    return (
-      <div className="flex flex-col items-center py-5 border-r last:border-r-0 border-slate-100 dark:border-slate-800">
-        <span className="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">{label}</span>
-        <div className="flex items-center gap-1">
-          <span className="text-xl font-black">{current}</span>
-          {isUnder && <ChevronDown className="w-3 h-3 text-red-500" />}
-          {isOver && <ChevronUp className="w-3 h-3 text-red-500" />}
-        </div>
-        <span className="text-[9px] opacity-40 font-bold">{range.min} - {range.max}</span>
-      </div>
-    );
-  };
-
-  const KeywordPill = ({ term }: { term: KeywordMetric }) => {
-    const diffColor: Record<string, string> = {
-      easy: 'border-emerald-500 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20',
-      medium: 'border-amber-500 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20',
-      hard: 'border-red-500 text-red-600 bg-red-50/50 dark:bg-red-950/20'
-    };
-    return (
-      <div className={`px-3 py-1.5 rounded-lg border-2 ${diffColor[term.difficulty] || diffColor.medium} flex items-center gap-2 transition-all hover:scale-105 shadow-sm`}>
-        <span className="text-[11px] font-bold">{term.keyword}</span>
-        <span className="text-[10px] font-black opacity-40 tabular-nums">{term.count}/{term.min}-{term.max}</span>
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#050608] flex flex-col font-jakarta">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#050608] flex flex-col font-jakarta transition-colors duration-500">
       <header className="h-20 lg:h-24 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#050608]/80 backdrop-blur-2xl sticky top-0 z-[100] px-8 lg:px-12 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="bg-blue-600 p-2.5 rounded-2xl shadow-xl shadow-blue-600/20"><Zap className="text-white w-6 h-6 fill-current" /></div>
           <div>
             <h1 className="text-xl font-black tracking-tighter uppercase">SuperPage <span className="text-blue-600 italic">Viral</span></h1>
-            <p className="text-[8px] font-black opacity-30 uppercase tracking-[0.4em] leading-none mt-1">SEO Engine v5</p>
+            <p className="text-[8px] font-black opacity-30 uppercase tracking-[0.4em] leading-none mt-1">AI Research Engine v5</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-           <button onClick={toggleTheme} className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm">
+           <button onClick={toggleTheme} className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95">
              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
            </button>
         </div>
@@ -165,32 +178,65 @@ const App: React.FC = () => {
               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-8 flex items-center gap-2"><Layout className="w-4 h-4" /> Blueprint</h2>
               <div className="space-y-6">
                 <div>
-                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Primary Topic Keyword</label>
-                  <input value={inputs.title} onChange={e => setInputs({...inputs, title: e.target.value})} placeholder="e.g. Best SEO Tools for 2025" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none" />
+                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Main Target Keyword</label>
+                  <input value={inputs.title} onChange={e => setInputs({...inputs, title: e.target.value})} placeholder="e.g. Best SEO Tools for 2025" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none focus:border-blue-500 transition-colors" />
                 </div>
-                <div>
-                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Secondary Keywords (LSI)</label>
-                  <input value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="comma, separated, terms" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none" />
-                </div>
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Country</label>
-                    <select value={inputs.country} onChange={e => { const c = COUNTRIES.find(x => x.name === e.target.value); if(c) setInputs({...inputs, country: c.name, city: c.capital}); }} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-3 font-bold text-xs appearance-none">
-                      {COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                    </select>
+                    <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Local SEO Target</label>
+                    <div className="relative">
+                      <select 
+                        value={inputs.country} 
+                        onChange={e => { 
+                          const c = COUNTRIES.find(x => x.name === e.target.value); 
+                          if(c) setInputs({...inputs, country: c.name, city: c.capital}); 
+                        }} 
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-3 py-3 font-bold text-xs appearance-none focus:border-blue-500"
+                      >
+                        {COUNTRIES.map(c => (
+                          <option key={c.name} value={c.name}>
+                            {getFlagEmoji(c.code)} {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">{getFlagEmoji(selectedCountry.code)}</div>
+                    </div>
                   </div>
                   <div>
-                    <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Target City</label>
-                    <input value={inputs.city} onChange={e => setInputs({...inputs, city: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-3 font-bold text-xs" />
+                    <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">City Focus</label>
+                    <input list="city-list" value={inputs.city} onChange={e => setInputs({...inputs, city: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 font-bold text-xs" />
+                    <datalist id="city-list">
+                      {selectedCountry.cities.map(city => <option key={city} value={city} />)}
+                    </datalist>
                   </div>
                 </div>
+
                 <div>
-                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">The Strategic Brief</label>
-                  <textarea rows={6} value={inputs.customInstructions} onChange={e => setInputs({...inputs, customInstructions: e.target.value})} placeholder="Provide specific data, structure, or content requirements here..." className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none resize-none" />
+                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest flex items-center gap-2"><LinkIcon className="w-3 h-3 text-blue-500" /> Affiliate / Promo Link</label>
+                  <input value={inputs.promotionLink} onChange={e => setInputs({...inputs, promotionLink: e.target.value})} placeholder="https://your-product-link.com" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none focus:border-blue-500" />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Secondary Keywords (LSI)</label>
+                  <input value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="semantic, related, terms" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none focus:border-blue-500" />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Custom Instructions</label>
+                  <textarea rows={4} value={inputs.customInstructions} onChange={e => setInputs({...inputs, customInstructions: e.target.value})} placeholder="Research specifics, brand tone, or structural needs..." className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none resize-none focus:border-blue-500" />
                 </div>
               </div>
-              <button onClick={handleGenerate} disabled={loading} className="w-full mt-8 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.5rem] font-black text-xs tracking-[0.2em] shadow-2xl shadow-blue-500/30 flex items-center justify-center transition-all disabled:opacity-50">
-                {loading ? <div className="flex flex-col items-center"><Loader2 className="animate-spin w-5 h-5 mb-1" /><span className="text-[8px] animate-pulse">{loadingStep}</span></div> : <><Sparkles className="w-4 h-4 mr-2" /> GENERATE SUPERPAGE</>}
+
+              <button onClick={handleGenerate} disabled={loading} className="w-full mt-8 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.5rem] font-black text-xs tracking-[0.2em] shadow-2xl shadow-blue-500/30 flex flex-col items-center justify-center transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-95">
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin w-5 h-5 mb-2" />
+                    <span className="text-[8px] animate-pulse tracking-widest uppercase">{loadingStep}</span>
+                  </>
+                ) : (
+                  <><Sparkles className="w-4 h-4 mr-2 mb-1" /> RESEARCH & GENERATE</>
+                )}
               </button>
             </div>
           </aside>
@@ -220,8 +266,12 @@ const App: React.FC = () => {
                     <div className="overflow-y-auto custom-scrollbar flex-1">
                       <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/20 dark:bg-black/10">
                         <h3 className="text-sm font-black uppercase tracking-widest opacity-60">SEO Health Monitor</h3>
-                        <HelpCircle className="w-4 h-4 opacity-20" />
+                        <div className="flex items-center gap-2">
+                           <Globe className="w-4 h-4 text-blue-500" />
+                           <span className="text-[10px] font-black uppercase">{currentBlog.sources.length} Sources Found</span>
+                        </div>
                       </div>
+                      
                       <div className="p-12 flex flex-col items-center border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                         <div className="relative w-64 h-32 mb-6">
                            <svg viewBox="0 0 100 50" className="w-full">
@@ -235,12 +285,13 @@ const App: React.FC = () => {
                            </div>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/10 px-5 py-2 rounded-full border border-blue-100 dark:border-blue-800/50">
-                          <MapPin className="w-3.5 h-3.5" /> Local Authority: {inputs.city}
+                          <MapPin className="w-3.5 h-3.5" /> Local Authority: {inputs.city}, {inputs.country}
                         </div>
                       </div>
+
                       <div className="p-8 space-y-10">
                         <div>
-                          <h4 className="text-[11px] font-black uppercase tracking-widest opacity-40 mb-6 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Structural Audit</h4>
+                          <h4 className="text-[11px] font-black uppercase tracking-widest opacity-40 mb-6 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Structural Integrity</h4>
                           <div className="grid grid-cols-2 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden">
                              <StructuralMetric label="Words" current={currentBlog.seoResult?.structure.words.current} range={currentBlog.seoResult?.structure.words} />
                              <StructuralMetric label="H2 Tags" current={currentBlog.seoResult?.structure.h2.current} range={currentBlog.seoResult?.structure.h2} />
@@ -248,21 +299,13 @@ const App: React.FC = () => {
                              <StructuralMetric label="Visuals" current={currentBlog.seoResult?.structure.images.current} range={currentBlog.seoResult?.structure.images} />
                           </div>
                         </div>
-                        <div>
-                          <div className="flex items-center justify-between mb-6">
-                            <h4 className="text-[11px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Target className="w-4 h-4" /> Semantic Terms</h4>
-                            <span className="text-[9px] font-black opacity-20 uppercase tracking-widest">{currentBlog.seoResult?.terms.length} Tracked</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2.5">
-                            {currentBlog.seoResult?.terms.map((t, i) => <KeywordPill key={i} term={t} />)}
-                          </div>
-                        </div>
+
                         <div className="bg-slate-50 dark:bg-slate-950/40 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 space-y-6">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20"><MessageSquare className="w-6 h-6 text-white" /></div>
                             <div>
-                              <h4 className="text-[11px] font-black uppercase tracking-widest">AI Content Strategist</h4>
-                              <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Analysis Mode: Human & Viral</p>
+                              <h4 className="text-[11px] font-black uppercase tracking-widest">AI Strategist Chat</h4>
+                              <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Ask to tweak CTAs or add FAQs</p>
                             </div>
                           </div>
                           <div className="max-h-[300px] overflow-y-auto custom-scrollbar space-y-4 p-1">
@@ -273,12 +316,19 @@ const App: React.FC = () => {
                                 </div>
                               </div>
                             ))}
-                            {isChatting && <div className="flex gap-2 p-2"><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce delay-100" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce delay-200" /></div>}
+                            {isChatting && <div className="flex gap-2 p-2"><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce delay-100" /></div>}
                             <div ref={chatEndRef} />
                           </div>
                           <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
-                             <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Ask to humanize, add FAQ..." className="flex-1 bg-transparent px-4 py-3 text-xs font-bold outline-none" />
-                             <button onClick={handleSendMessage} disabled={!chatInput.trim() || isChatting} className="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:bg-blue-700 disabled:opacity-50 transition-all active:scale-90"><Send className="w-5 h-5" /></button>
+                             <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Tweak monetization..." className="flex-1 bg-transparent px-4 py-3 text-xs font-bold outline-none" />
+                             <button onClick={handleSendMessage} disabled={!chatInput.trim() || isChatting} className="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-90"><Send className="w-5 h-5" /></button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="text-[11px] font-black uppercase tracking-widest opacity-40 mb-4">Semantic Terms</h4>
+                          <div className="flex flex-wrap gap-2.5">
+                            {currentBlog.seoResult?.terms.map((t, i) => <KeywordPill key={i} term={t} />)}
                           </div>
                         </div>
                       </div>
@@ -287,10 +337,10 @@ const App: React.FC = () => {
                 </aside>
               </div>
             ) : (
-              <div className="h-[900px] bg-white dark:bg-slate-900/20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[4rem] flex flex-col items-center justify-center text-center px-12">
+              <div className="h-[900px] bg-white dark:bg-slate-900/20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[4rem] flex flex-col items-center justify-center text-center px-12 transition-all">
                 <div className="bg-white dark:bg-slate-900 p-16 rounded-[4rem] mb-10 shadow-inner border border-slate-50 dark:border-slate-800 animate-pulse"><Smartphone className="w-32 h-32 opacity-10" /></div>
-                <h3 className="text-3xl font-black opacity-20 uppercase tracking-tighter mb-4">Awaiting Signal</h3>
-                <p className="text-[10px] font-black opacity-10 uppercase tracking-[0.4em]">Initialize the Page Blueprint to start the generation sequence.</p>
+                <h3 className="text-3xl font-black opacity-20 uppercase tracking-tighter mb-4 italic">Blueprint Required</h3>
+                <p className="text-[10px] font-black opacity-10 uppercase tracking-[0.4em]">Initialize research parameters to begin the SuperPage generation sequence.</p>
               </div>
             )}
           </section>
@@ -300,7 +350,7 @@ const App: React.FC = () => {
       <footer className="py-20 border-t border-slate-200 dark:border-slate-800 text-center bg-white dark:bg-[#050608]/40">
         <div className="flex flex-col items-center gap-6">
           <Zap className="w-6 h-6 text-blue-600 fill-current opacity-20" />
-          <p className="text-[9px] font-black opacity-10 uppercase tracking-[0.6em] max-w-xl mx-auto px-6">SuperPage v5 • World-Class Content Intelligence Architecture • 100% Humanized Strategy</p>
+          <p className="text-[9px] font-black opacity-10 uppercase tracking-[0.6em] max-w-xl mx-auto px-6">SuperPage v5 • World-Class Intelligence Architecture • 100% Humanized Affiliate Strategy</p>
         </div>
       </footer>
     </div>

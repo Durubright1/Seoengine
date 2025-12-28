@@ -47,7 +47,9 @@ export enum SearchIntent {
 
 export interface Country {
   name: string;
+  code: string;
   capital: string;
+  cities: string[];
 }
 
 export interface KeywordMetric {

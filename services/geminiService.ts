@@ -29,29 +29,28 @@ export const generateFullSuperPage = async (
     }
   }
 
-  onProgress?.("Scanning Web for Rapid Virality Triggers...");
+  onProgress?.("Performing Deep Internet Research...");
   
   const systemInstruction = `
-    Act as a World-Class SEO Architect and Viral Content Specialist.
-    Topic: "${inputs.title}"
-    Primary Intent: ${inputs.intent}
-    Tone: ${inputs.tone} - Priority: 100% HUMANIZED. Relatable, conversational, and authoritative. 
-    Location Focus: ${inputs.city}, ${inputs.country} (Local SEO).
+    Act as a World-Class SEO Architect, Investigative Journalist, and Affiliate Marketing Expert.
     
-    CONTENT PROTOCOL:
-    1. Hook: Start with a deeply human, emotional or curious hook. Avoid robotic AI intros.
-    2. Narrative: Use a storytelling approach. Vary sentence length for rhythm.
-    3. Multimedia: Include at least 2 [IMAGE_PLACEHOLDER: descriptive prompt] tags for later image insertion.
-    4. Strategic Brief: Seamlessly integrate these details: "${inputs.customInstructions}"
-    5. Local SEO: Specifically mention ${inputs.city} or relevant local landmarks/trends if they fit the topic.
+    RESEARCH MISSION:
+    1. Search for the top 5 ranking articles for "${inputs.title}".
+    2. Identify "Content Gaps" - what are they missing that users in ${inputs.city} actually want to know?
+    3. Find current trending data, statistics, or news related to ${inputs.niche} in ${inputs.country}.
     
-    HTML STRUCTURE (Optimized for Blogger):
+    CONTENT ARCHITECTURE:
+    - Topic: "${inputs.title}"
+    - Tone: 100% HUMANIZED. Use first-person perspectives ("I noticed...", "Many of my clients in ${inputs.city} ask...").
+    - Affiliate Strategy: If a promotion link is provided ("${inputs.promotionLink}"), naturally weave it into a "Pro Recommendation" section or as a contextual solution to a problem discussed. Ensure the CTA (Call to Action) is high-converting but helpful, not spammy.
+    - Local Authority: Mention local landmarks, specific ${inputs.city} vibes, or regional regulations/trends to win the Local SEO game.
+    
+    HTML STRUCTURE (Blogger-Ready):
     - <h1> for Title.
-    - Use <h2> and <h3> for subheadings.
-    - <blockquote> for key authority quotes.
-    - <ul> and <li> for punchy lists.
-    - Word count: 1800-3500 words for deep-dive authority.
-    - Natural integration of: "${inputs.secondaryKeywords}".
+    - <h2> and <h3> for subheadings with power words.
+    - <blockquote> for industry authority quotes found during research.
+    - [IMAGE_PLACEHOLDER: descriptive prompt] tags (at least 3).
+    - A "Quick Summary" or "Key Takeaways" box using a <div> with inline styles for a modern look.
     
     Output Format: RAW HTML ONLY. No markdown wrappers.
   `;
@@ -59,11 +58,15 @@ export const generateFullSuperPage = async (
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `Generate a high-performance, viral, humanized superpage about "${inputs.title}" optimized for ${inputs.city}, ${inputs.country}. Incorporate "${inputs.secondaryKeywords}".`,
+      contents: `Perform internet research and then write a 2500-word humanized superpage about "${inputs.title}". 
+      Include local context for ${inputs.city}, ${inputs.country}. 
+      Use these keywords: "${inputs.secondaryKeywords}". 
+      Strategic promotion link: "${inputs.promotionLink}". 
+      Custom brief: "${inputs.customInstructions}"`,
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingBudget: 10000 }
+        thinkingConfig: { thinkingBudget: 15000 }
       }
     });
 
@@ -89,13 +92,13 @@ export const analyzeSEOContent = async (
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const systemInstruction = `
-    Act as a pro SEO Intelligence tool (like Surfer SEO). 
-    Audit content for "${primaryKeyword}" targeting ${city}, ${country}.
-
-    DIFFICULTY CLASSIFICATION for 'difficulty' field:
-    - "easy": Low competition, high opportunity (Green UI).
-    - "medium": Moderate competition (Yellow UI).
-    - "hard": High competition, requires high authority (Red UI).
+    Act as a pro SEO Intelligence tool. Audit content for "${primaryKeyword}" targeting ${city}, ${country}.
+    Check for:
+    1. Keyword density (natural vs stuffed).
+    2. LSI usage.
+    3. Readability (Flesch-Kincaid).
+    4. Local relevance markers.
+    5. Conversion optimization (presence of CTA/Link).
 
     Return JSON matching the SEOScoreResult interface.
   `;
