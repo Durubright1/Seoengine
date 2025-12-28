@@ -1,0 +1,7 @@
+{
+  "name": "Instant SuperPage PWA",
+  "description": "A high-performance SEO blog generator that creates Blogger-ready HTML pages instantly using Gemini AI.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
