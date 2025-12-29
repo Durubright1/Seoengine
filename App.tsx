@@ -45,7 +45,7 @@ const LOADING_MESSAGES = [
 ];
 
 // Fixed StructuralMetric component with proper typing to avoid React key prop errors
-const StructuralMetric = ({ label, current, range }: { label: string; current: number | undefined; range: { min: number; max: number } | undefined }) => {
+const StructuralMetric: React.FC<{ label: string; current: number | undefined; range: { min: number; max: number } | undefined }> = ({ label, current, range }) => {
   if (!range) return null;
   const curr = current ?? 0;
   const isUnder = curr < range.min;
@@ -64,7 +64,7 @@ const StructuralMetric = ({ label, current, range }: { label: string; current: n
 };
 
 // Fixed KeywordPill component with proper typing to avoid React key prop errors
-const KeywordPill = ({ term }: { term: KeywordMetric }) => {
+const KeywordPill: React.FC<{ term: KeywordMetric }> = ({ term }) => {
   const diffColor: Record<string, string> = {
     easy: 'border-emerald-500 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20',
     medium: 'border-amber-500 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20',

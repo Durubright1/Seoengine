@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
@@ -29,39 +30,26 @@
 <script type="importmap">
 {
   "imports": {
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
   }
 }
 </script>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-blue-100 transition-colors duration-300">
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
     <script>
-      /**
-       * PWA Service Worker Registration
-       * Optimized to handle cross-origin preview environments like AI Studio.
-       */
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Check if we are in a context that likely supports Service Workers (Same-Origin)
-          // We use a dot-relative path and explicit scope to satisfy browser security.
-          navigator.serviceWorker.register('./service-worker.js', { scope: './' })
-            .then(reg => {
-              console.log('%c[PWA]%c ServiceWorker registered successfully.', 'color: #2563eb; font-weight: bold;', 'color: inherit;', reg.scope);
-            })
-            .catch(err => {
-              // Handle origin mismatch errors specifically for environments like ai.studio
-              if (err.name === 'SecurityError' || err.message.includes('origin')) {
-                console.warn('%c[PWA]%c ServiceWorker skipped: Running in a cross-origin or restricted preview environment.', 'color: #f59e0b; font-weight: bold;', 'color: inherit;');
-              } else {
-                console.error('[PWA] ServiceWorker registration failed:', err);
-              }
-            });
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('[PWA] Registered:', reg.scope))
+            .catch(err => console.log('[PWA] Error:', err));
         });
       }
     </script>
