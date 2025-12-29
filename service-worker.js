@@ -1,59 +1,46 @@
-const CACHE_NAME = 'superpage-v3';
+const CACHE_NAME = 'superpage-v5';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/styles.css',
-  '/manifest.json',
-  '/index.tsx',
-  'https://cdn.tailwindcss.com'
+  '/manifest.json'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('Opened cache');
       return cache.addAll(urlsToCache);
     })
   );
 });
 
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
       );
     })
   );
 });
 
 self.addEventListener('fetch', event => {
+  // Skip cross-origin requests like API calls or CDN scripts for simple caching
+  if (!event.request.url.startsWith(self.location.origin)) return;
+
   event.respondWith(
     caches.match(event.request).then(response => {
-      // Cache hit - return response
-      if (response) {
-        return response;
-      }
-      return fetch(event.request).then(response => {
-        // Check if we received a valid response
-        if(!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+      return response || fetch(event.request).then(fetchResponse => {
+        if(!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
+          return fetchResponse;
         }
-
-        const responseToCache = response.clone();
+        const responseToCache = fetchResponse.clone();
         caches.open(CACHE_NAME).then(cache => {
           cache.put(event.request, responseToCache);
         });
-
-        return response;
+        return fetchResponse;
       });
     }).catch(() => {
-        // Fallback or just let it fail if network is down and not cached
+        // Fallback
     })
   );
 });

@@ -6,7 +6,7 @@ import {
   Zap, Copy, Loader2, Moon, Sun,
   Check, Sparkles, MessageSquare, 
   Send, Smartphone, BarChart3, Layout, ChevronUp, ChevronDown, 
-  Flame, MapPin, Link as LinkIcon, Globe, ExternalLink, Key
+  Flame, MapPin, Link as LinkIcon, Globe, ExternalLink, Key, AlertCircle
 } from 'lucide-react';
 
 const COUNTRIES: Country[] = [
@@ -72,7 +72,7 @@ const App: React.FC = () => {
   const [isChatting, setIsChatting] = useState(false);
   const [previewMode, setPreviewMode] = useState<'preview' | 'html'>('preview');
   const [copied, setCopied] = useState(false);
-  const [hasKey, setHasKey] = useState(true);
+  const [hasKey, setHasKey] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const selectedCountry = COUNTRIES.find(c => c.name === inputs.country) || COUNTRIES[0];
@@ -80,8 +80,12 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkKey = async () => {
       if (window.aistudio) {
-        const selected = await window.aistudio.hasSelectedApiKey();
-        setHasKey(selected);
+        try {
+          const selected = await window.aistudio.hasSelectedApiKey();
+          setHasKey(selected);
+        } catch (e) {
+          console.error("Key check failed", e);
+        }
       }
     };
     checkKey();
@@ -111,12 +115,10 @@ const App: React.FC = () => {
   const handleGenerate = async () => {
     if (!inputs.title.trim()) { setError("Focus keyword required."); return; }
     
-    // Check key selection before proceeding
     if (window.aistudio) {
       const selected = await window.aistudio.hasSelectedApiKey();
       if (!selected) {
         await handleOpenKeySelection();
-        // Proceed anyway as per instructions (race condition mitigation)
       }
     }
 
@@ -135,13 +137,13 @@ const App: React.FC = () => {
       };
       
       setCurrentBlog(newBlog);
-      setChatMessages([{ role: 'assistant', content: `SuperPage Live! 🚀 Research analyzed ${result.sources.length} live sources. SEO Score: ${seo.score}/100. Affiliate hooks ready.` }]);
+      setChatMessages([{ role: 'assistant', content: `Generation complete! Research analyzed ${result.sources.length} sources. SEO Score: ${seo.score}/100.` }]);
     } catch (err: any) {
-      if (err.message.includes("Requested entity was not found")) {
-        setError("AI Model Access Error. Please re-select your API key.");
+      if (err.message?.includes("Requested entity was not found")) {
+        setError("AI Model Access Error. Please click 'Configure AI' to re-select your key.");
         setHasKey(false);
       } else {
-        setError(err.message);
+        setError(err.message || "An unexpected error occurred.");
       }
     } finally {
       clearInterval(interval);
@@ -159,7 +161,7 @@ const App: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const chat = ai.chats.create({ 
         model: 'gemini-3-flash-preview', 
-        config: { systemInstruction: `You are an SEO Strategist. Help optimize "${currentBlog.title}". Your goal is maximum humanization and conversion.` } 
+        config: { systemInstruction: `You are an SEO Strategist. Helping optimize "${currentBlog.title}".` } 
       });
       const response = await chat.sendMessage({ message: content });
       setChatMessages(prev => [...prev, { role: 'assistant', content: response.text || 'Thinking complete.' }]);
@@ -180,13 +182,17 @@ const App: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-4">
-           {!hasKey && (
+           {!hasKey ? (
              <button 
                onClick={handleOpenKeySelection}
-               className="hidden md:flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 hover:text-white transition-all"
+               className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all animate-bounce"
              >
-               <Key className="w-3.5 h-3.5" /> Configure Key
+               <Key className="w-3.5 h-3.5" /> Configure AI
              </button>
+           ) : (
+             <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest">
+               <Check className="w-3 h-3" /> System Ready
+             </div>
            )}
            <button onClick={toggleTheme} className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95">
              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
@@ -200,14 +206,6 @@ const App: React.FC = () => {
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl p-8 sticky top-32">
               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-8 flex items-center gap-2"><Layout className="w-4 h-4" /> Blueprint</h2>
               
-              {!hasKey && (
-                <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 mb-3">Google AI key required for high-tier research.</p>
-                  <button onClick={handleOpenKeySelection} className="w-full py-2 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase">Select Paid Project</button>
-                  <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="block text-center mt-2 text-[9px] underline opacity-40">Billing Docs</a>
-                </div>
-              )}
-
               <div className="space-y-6">
                 <div>
                   <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Main Target Keyword</label>
@@ -250,7 +248,12 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {error && <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase">{error}</div>}
+              {error && (
+                <div className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex gap-3 items-start animate-in">
+                  <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase leading-relaxed">{error}</p>
+                </div>
+              )}
 
               <button onClick={handleGenerate} disabled={loading} className="w-full mt-8 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.5rem] font-black text-xs tracking-[0.2em] shadow-2xl shadow-blue-500/30 flex flex-col items-center justify-center transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-95">
                 {loading ? (
