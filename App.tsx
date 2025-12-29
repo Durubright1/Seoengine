@@ -6,11 +6,9 @@ import { generateFullSuperPage, analyzeSEOContent, researchSecondaryKeywords } f
 import { 
   Zap, Copy, Loader2, Moon, Sun,
   Check, Sparkles, MessageSquare, 
-  Send, Smartphone, BarChart3, Layout, ChevronUp, ChevronDown, 
-  Flame, MapPin, Link as LinkIcon, Globe, ExternalLink, Key, AlertCircle, Info,
-  Download, Trash2, Plus, Target, Search, Database, Fingerprint, TrendingUp,
-  BrainCircuit, ShieldCheck, Heart, Info as InfoIcon, Zap as ZapIcon, Image as ImageIcon,
-  Wand2, BookOpen, Clock, Shield
+  Send, Layout, ChevronUp, ChevronDown, 
+  Flame, Target, BrainCircuit, Zap as ZapIcon, Image as ImageIcon,
+  Wand2, Clock, Shield
 } from 'lucide-react';
 
 const COUNTRIES: Country[] = [
@@ -108,8 +106,6 @@ const App: React.FC = () => {
     imageSource: 'nanobanana', imageUrl: '', promotionLink: '', customInstructions: ''
   });
   const [currentBlog, setCurrentBlog] = useState<GeneratedBlog | null>(null);
-  const [library, setLibrary] = useState<GeneratedBlog[]>([]);
-  const [showLibrary, setShowLibrary] = useState(false);
   const [loading, setLoading] = useState(false);
   const [researching, setResearching] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
@@ -127,14 +123,7 @@ const App: React.FC = () => {
     const savedTheme = localStorage.getItem('superpage_theme') || 'dark';
     setTheme(savedTheme as any);
     if (savedTheme === 'dark') document.documentElement.classList.add('dark');
-
-    const savedLibrary = localStorage.getItem('superpage_vault');
-    if (savedLibrary) setLibrary(JSON.parse(savedLibrary));
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('superpage_vault', JSON.stringify(library));
-  }, [library]);
 
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -164,8 +153,7 @@ const App: React.FC = () => {
         inputs: { ...inputs }, sources: result.sources, seoResult: seo
       };
       setCurrentBlog(newBlog);
-      setLibrary(prev => [newBlog, ...prev.slice(0, 19)]); // Local Vault sync
-      setChatMessages([{ role: 'assistant', content: "SuperPage generated and secured in your Personal Vault. Use the chat to refine the narrative." }]);
+      setChatMessages([{ role: 'assistant', content: "SuperPage Protocol Complete. SEO optimized and human-verified. Use the refiner to make surgical edits." }]);
     } catch (err: any) {
       setError(err.message || "Neural Synth Fault.");
     } finally {
@@ -191,20 +179,13 @@ const App: React.FC = () => {
       if (newHtml.includes('<h1')) {
         const updatedBlog = { ...currentBlog, htmlContent: newHtml };
         setCurrentBlog(updatedBlog);
-        setLibrary(prev => prev.map(b => b.id === updatedBlog.id ? updatedBlog : b));
-        setChatMessages(prev => [...prev, { role: 'assistant', content: "Content fine-tuned. Check the render below." }]);
+        setChatMessages(prev => [...prev, { role: 'assistant', content: "Narrative fine-tuned. View updated render." }]);
       } else {
         setChatMessages(prev => [...prev, { role: 'assistant', content: response.text }]);
       }
     } catch (err: any) {
       setChatMessages(prev => [...prev, { role: 'assistant', content: "Assistant offline." }]);
     } finally { setIsChatting(false); }
-  };
-
-  const deleteFromLibrary = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLibrary(prev => prev.filter(b => b.id !== id));
-    if (currentBlog?.id === id) setCurrentBlog(null);
   };
 
   return (
@@ -215,98 +196,66 @@ const App: React.FC = () => {
           <div>
             <h1 className="text-2xl font-black tracking-tighter uppercase flex items-center gap-2">
               SuperPage <span className="text-blue-600 italic">Neural</span>
-              <span className="hidden sm:inline-block px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] tracking-widest font-black border border-emerald-500/20 ml-2 uppercase">v11.5 PRO</span>
+              <span className="hidden sm:inline-block px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] tracking-widest font-black border border-emerald-500/20 ml-2 uppercase">v12.0 SEO</span>
             </h1>
-            <p className="text-[9px] font-black opacity-30 uppercase tracking-[0.5em] leading-none mt-1.5">Zero-Cost Personal Instance • Secure local storage</p>
+            <p className="text-[9px] font-black opacity-30 uppercase tracking-[0.5em] leading-none mt-1.5">Elite SEO Automation • Nano Banana Engine</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-           <button onClick={() => setShowLibrary(!showLibrary)} className={`w-14 h-14 rounded-[1.25rem] border flex items-center justify-center transition-all ${showLibrary ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
-             <BookOpen className="w-6 h-6" />
-           </button>
-           <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className="w-14 h-14 bg-white dark:bg-slate-800 rounded-[1.25rem] border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm">
-            {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
-          </button>
-        </div>
+        <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className="w-14 h-14 bg-white dark:bg-slate-800 rounded-[1.25rem] border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm">
+          {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
+        </button>
       </header>
 
       <main className="flex-1 max-w-[1850px] mx-auto w-full p-8 lg:p-12">
         <div className="grid lg:grid-cols-12 gap-12">
-          {/* Side Panel */}
+          {/* Permanent Sidebar: SuperPage Blueprint */}
           <aside className="lg:col-span-4 xl:col-span-3">
-            {showLibrary ? (
-              <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-10 h-[800px] flex flex-col">
-                <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3"><Clock className="w-5 h-5" /> Local Vault</h2>
-                  <span className="text-[10px] font-black opacity-30">{library.length}/20</span>
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-10 space-y-10">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3"><Target className="w-5 h-5" /> SuperPage Blueprint</h2>
+              <div className="space-y-8">
+                <div>
+                  <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Primary Focus Keyword</label>
+                  <input value={inputs.title} onChange={e => setInputs({...inputs, title: e.target.value})} placeholder="Main high-volume keyword..." className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black outline-none focus:border-blue-500 transition-colors" />
                 </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-2">
-                  {library.length === 0 ? (
-                    <div className="text-center py-20 opacity-20">
-                      <Shield className="w-12 h-12 mx-auto mb-4" />
-                      <p className="text-[10px] font-black uppercase tracking-widest">Vault Secured</p>
-                    </div>
-                  ) : (
-                    library.map(blog => (
-                      <div key={blog.id} onClick={() => { setCurrentBlog(blog); setShowLibrary(false); }} className={`p-5 rounded-2xl border cursor-pointer transition-all hover:border-blue-500 group ${currentBlog?.id === blog.id ? 'bg-blue-600/5 border-blue-500 shadow-lg' : 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800'}`}>
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-xs font-black uppercase tracking-tight line-clamp-2">{blog.title}</h3>
-                          <button onClick={(e) => deleteFromLibrary(blog.id, e)} className="opacity-0 group-hover:opacity-100 text-red-500 transition-opacity"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
-                        <p className="text-[9px] font-black opacity-30 uppercase tracking-tighter">{new Date(blog.timestamp).toLocaleDateString()} • {blog.seoResult?.score || 0}% Score</p>
-                      </div>
-                    ))
-                  )}
+
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Target Country</label>
+                    <select value={inputs.country} onChange={e => setInputs({...inputs, country: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl pl-5 pr-3 py-4 font-black text-xs appearance-none">
+                      {COUNTRIES.map(c => <option key={c.name} value={c.name}>{getFlagEmoji(c.code)} {c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Target City</label>
+                    <input value={isGlobal ? 'Worldwide' : inputs.city} disabled={isGlobal} onChange={e => setInputs({...inputs, city: e.target.value})} className={`w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black text-xs outline-none focus:border-blue-500 transition-opacity ${isGlobal ? 'opacity-30 cursor-not-allowed' : ''}`} />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="text-[10px] font-black uppercase opacity-40 block tracking-widest">LSI Secondary keywords</label>
+                    <button onClick={handleResearchKeywords} disabled={researching} className="text-[9px] font-black text-blue-600 uppercase flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                      {researching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />} Auto-Research
+                    </button>
+                  </div>
+                  <textarea value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="Keywords for semantic coverage..." className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black text-xs outline-none focus:border-blue-500 h-24 resize-none" />
+                </div>
+
+                <div>
+                   <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Visual Asset Mode</label>
+                   <div className="grid grid-cols-2 gap-3">
+                      <button onClick={() => setInputs({...inputs, imageSource: 'nanobanana'})} className={`py-4 rounded-2xl border-2 font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${inputs.imageSource === 'nanobanana' ? 'border-blue-600 bg-blue-600/10 text-blue-600 shadow-lg' : 'border-slate-100 dark:border-slate-800 opacity-40 hover:opacity-100'}`}><ZapIcon className="w-4 h-4" /> Nano Banana</button>
+                      <button onClick={() => setInputs({...inputs, imageSource: 'pexels'})} className={`py-4 rounded-2xl border-2 font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${inputs.imageSource === 'pexels' ? 'border-blue-600 bg-blue-600/10 text-blue-600 shadow-lg' : 'border-slate-100 dark:border-slate-800 opacity-40 hover:opacity-100'}`}><ImageIcon className="w-4 h-4" /> Pexels 8K</button>
+                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-10 space-y-10">
-                <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-3"><Target className="w-5 h-5" /> SuperPage Blueprint</h2>
-                <div className="space-y-8">
-                  <div>
-                    <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Primary Focus Keyword</label>
-                    <input value={inputs.title} onChange={e => setInputs({...inputs, title: e.target.value})} placeholder="e.g. Best SaaS Marketing 2025" className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black outline-none focus:border-blue-500 transition-colors" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Target Country</label>
-                      <select value={inputs.country} onChange={e => setInputs({...inputs, country: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl pl-5 pr-3 py-4 font-black text-xs appearance-none">
-                        {COUNTRIES.map(c => <option key={c.name} value={c.name}>{getFlagEmoji(c.code)} {c.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Target City</label>
-                      <input value={isGlobal ? 'Worldwide' : inputs.city} disabled={isGlobal} onChange={e => setInputs({...inputs, city: e.target.value})} className={`w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black text-xs outline-none focus:border-blue-500 transition-opacity ${isGlobal ? 'opacity-30 cursor-not-allowed' : ''}`} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <label className="text-[10px] font-black uppercase opacity-40 block tracking-widest">LSI Secondary Research</label>
-                      <button onClick={handleResearchKeywords} disabled={researching} className="text-[9px] font-black text-blue-600 uppercase flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                        {researching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />} Add All
-                      </button>
-                    </div>
-                    <textarea value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="Comma-separated LSI terms..." className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black text-xs outline-none focus:border-blue-500 h-24 resize-none" />
-                  </div>
-
-                  <div>
-                     <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Neural Visual Engine</label>
-                     <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => setInputs({...inputs, imageSource: 'nanobanana'})} className={`py-4 rounded-2xl border-2 font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${inputs.imageSource === 'nanobanana' ? 'border-blue-600 bg-blue-600/10 text-blue-600 shadow-lg' : 'border-slate-100 dark:border-slate-800 opacity-40 hover:opacity-100'}`}><ZapIcon className="w-4 h-4" /> Nano Banana</button>
-                        <button onClick={() => setInputs({...inputs, imageSource: 'pexels'})} className={`py-4 rounded-2xl border-2 font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${inputs.imageSource === 'pexels' ? 'border-blue-600 bg-blue-600/10 text-blue-600 shadow-lg' : 'border-slate-100 dark:border-slate-800 opacity-40 hover:opacity-100'}`}><ImageIcon className="w-4 h-4" /> Pexels HD</button>
-                     </div>
-                  </div>
-                </div>
-                <button onClick={handleGenerate} disabled={loading} className="w-full mt-10 py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-[2rem] font-black text-xs tracking-[0.3em] flex flex-col items-center transition-all disabled:opacity-50 shadow-2xl">
-                  {loading ? <><Loader2 className="animate-spin w-6 h-6 mb-2" /><span className="text-[9px] uppercase animate-pulse">{loadingStep}</span></> : <><Sparkles className="w-5 h-5 mr-2 mb-1" /> GENERATE SUPERPAGE</>}
-                </button>
-              </div>
-            )}
+              <button onClick={handleGenerate} disabled={loading} className="w-full mt-10 py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-[2rem] font-black text-xs tracking-[0.3em] flex flex-col items-center transition-all disabled:opacity-50 shadow-2xl">
+                {loading ? <><Loader2 className="animate-spin w-6 h-6 mb-2" /><span className="text-[9px] uppercase animate-pulse">{loadingStep}</span></> : <><Sparkles className="w-5 h-5 mr-2 mb-1" /> CONSTRUCT SUPERPAGE</>}
+              </button>
+            </div>
           </aside>
 
-          {/* Main Display */}
+          {/* Result Section */}
           <section className="lg:col-span-8 xl:col-span-9">
             {currentBlog ? (
               <div className="grid xl:grid-cols-12 gap-12">
@@ -314,11 +263,11 @@ const App: React.FC = () => {
                   <div className="bg-white dark:bg-[#0a0c10] rounded-[4rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden min-h-[950px] flex flex-col">
                     <div className="px-12 py-8 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-6 justify-between items-center bg-slate-50/30 dark:bg-slate-900/40">
                        <div className="flex bg-white dark:bg-slate-950 rounded-[1.5rem] p-1.5 border border-slate-200 dark:border-slate-800 shadow-inner">
-                          <button onClick={() => setPreviewMode('preview')} className={`px-10 py-4 rounded-[1.25rem] text-[11px] font-black uppercase transition-all ${previewMode === 'preview' ? 'bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}>Viral Render</button>
-                          <button onClick={() => setPreviewMode('html')} className={`px-10 py-4 rounded-[1.25rem] text-[11px] font-black uppercase transition-all ${previewMode === 'html' ? 'bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}>Clean Assets</button>
+                          <button onClick={() => setPreviewMode('preview')} className={`px-10 py-4 rounded-[1.25rem] text-[11px] font-black uppercase transition-all ${previewMode === 'preview' ? 'bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}>Visual Render</button>
+                          <button onClick={() => setPreviewMode('html')} className={`px-10 py-4 rounded-[1.25rem] text-[11px] font-black uppercase transition-all ${previewMode === 'html' ? 'bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}>Source Assets</button>
                        </div>
-                       <button onClick={() => { navigator.clipboard.writeText(currentBlog.htmlContent); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="px-10 py-5 bg-slate-900 dark:bg-blue-600 text-white rounded-[1.25rem] text-[11px] font-black uppercase flex items-center gap-4 shadow-2xl hover:scale-105 transition-transform active:scale-95">
-                          {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />} {copied ? 'COPIED' : 'COPY HTML CODE'}
+                       <button onClick={() => { navigator.clipboard.writeText(currentBlog.htmlContent); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="px-10 py-5 bg-slate-900 dark:bg-blue-600 text-white rounded-[1.25rem] text-[11px] font-black uppercase flex items-center gap-4 shadow-2xl hover:scale-105 transition-transform">
+                          {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />} {copied ? 'COPIED' : 'EXTRACT ASSETS'}
                        </button>
                     </div>
                     <div className="p-12 lg:p-20 flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-[#0a0c10]">
@@ -331,27 +280,27 @@ const App: React.FC = () => {
                   <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-8 sticky top-36 flex flex-col gap-10 h-[calc(100vh-200px)]">
                       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-12">
                         <div className="pt-4">
-                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] opacity-40 mb-4 flex justify-center">Neural Sentiment</h3>
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] opacity-40 mb-4 flex justify-center text-center">Neural SEO Integrity</h3>
                           <ScoreGauge score={currentBlog.seoResult?.score || 0} />
                         </div>
                         
                         <div className="py-8 border-y border-slate-100 dark:border-slate-800">
-                          <h4 className="text-[11px] font-black uppercase opacity-40 mb-6 flex items-center gap-2"><MessageSquare className="w-4 h-4 text-blue-600" /> Neural Chat Refiner</h4>
+                          <h4 className="text-[11px] font-black uppercase opacity-40 mb-6 flex items-center gap-2"><MessageSquare className="w-4 h-4 text-blue-600" /> Narrative Refiner</h4>
                           <div className="space-y-4 mb-6">
-                             {chatMessages.length === 0 && <p className="text-[10px] font-black opacity-20 uppercase text-center py-6">Protocol initialized. Awaiting instructions.</p>}
+                             {chatMessages.length === 0 && <p className="text-[10px] font-black opacity-20 uppercase text-center py-6">Architect Ready for refinements.</p>}
                              {chatMessages.map((msg, i) => (
                                <div key={i} className={`p-4 rounded-2xl text-xs font-bold leading-relaxed ${msg.role === 'user' ? 'bg-blue-600 text-white ml-8 shadow-lg' : 'bg-slate-50 dark:bg-slate-800 mr-8 text-slate-600 dark:text-slate-300'}`}>{msg.content}</div>
                              ))}
                              <div ref={chatEndRef} />
                           </div>
                           <div className="relative group">
-                            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Refine narrative or add sections..." className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold pr-12 outline-none focus:border-blue-500 transition-all shadow-inner" />
+                            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Ask to adjust sections..." className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold pr-12 outline-none focus:border-blue-500 transition-all shadow-inner" />
                             <button onClick={handleSendMessage} className="absolute right-3 top-3.5 p-2 text-blue-600 hover:scale-125 transition-transform"><Send className="w-4 h-4" /></button>
                           </div>
                         </div>
 
                         <div>
-                          <h4 className="text-[11px] font-black uppercase text-blue-600 mb-8 flex justify-between">Keyword Health <span>{currentBlog.seoResult?.terms.length} terms</span></h4>
+                          <h4 className="text-[11px] font-black uppercase text-blue-600 mb-8 flex justify-between">LSI Density Status</h4>
                           <div className="flex flex-wrap gap-2.5">
                              {currentBlog.seoResult?.terms.map((metric, idx) => (
                                <KeywordTag key={idx} metric={metric} />
@@ -364,9 +313,9 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="h-[950px] flex flex-col items-center justify-center border-4 border-dashed border-slate-200 dark:border-slate-800 rounded-[5rem] opacity-20 group hover:opacity-40 transition-opacity">
-                <BrainCircuit className="w-32 h-32 mb-8 group-hover:scale-110 transition-transform text-blue-600" />
-                <p className="text-xl font-black uppercase tracking-[0.5em]">Awaiting Generation Blueprint</p>
-                <p className="text-[10px] font-black uppercase tracking-widest mt-4">Nano Banana Core • Search Grounding v2</p>
+                <Layout className="w-32 h-32 mb-8 group-hover:scale-110 transition-transform text-blue-600" />
+                <p className="text-xl font-black uppercase tracking-[0.5em]">Awaiting Blueprint Initialization</p>
+                <p className="text-[10px] font-black uppercase tracking-widest mt-4">Deep Content Scouring • Cinematic Grounding</p>
               </div>
             )}
           </section>
@@ -374,7 +323,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="p-10 text-center border-t border-slate-200 dark:border-slate-800">
-        <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-30">© 2025 Neural Architect • Personal SuperPage Environment</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-30">© 2025 Neural Architect • Single-Session SEO Environment</p>
       </footer>
     </div>
   );
