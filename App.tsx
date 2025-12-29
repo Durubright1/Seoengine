@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage, KeywordMetric, GroundingSource } from './types';
+import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage, KeywordMetric } from './types';
 import { generateFullSuperPage, analyzeSEOContent } from './services/geminiService';
 import { 
   Zap, Copy, Loader2, Moon, Sun,
   Check, Sparkles, MessageSquare, 
   Send, Smartphone, BarChart3, Layout, ChevronUp, ChevronDown, 
-  Target, Flame, HelpCircle, MapPin, Link as LinkIcon, Globe, ExternalLink
+  Flame, MapPin, Link as LinkIcon, Globe, ExternalLink, Key
 } from 'lucide-react';
 
 const COUNTRIES: Country[] = [
@@ -55,20 +55,6 @@ const StructuralMetric: React.FC<{ label: string; current: number | undefined; r
   );
 };
 
-const KeywordPill: React.FC<{ term: KeywordMetric }> = ({ term }) => {
-  const diffColor: Record<string, string> = {
-    easy: 'border-emerald-500 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20',
-    medium: 'border-amber-500 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20',
-    hard: 'border-red-500 text-red-600 bg-red-50/50 dark:bg-red-950/20'
-  };
-  return (
-    <div className={`px-3 py-1.5 rounded-lg border-2 ${diffColor[term.difficulty] || diffColor.medium} flex items-center gap-2 transition-all hover:scale-105 shadow-sm`}>
-      <span className="text-[11px] font-bold">{term.keyword}</span>
-      <span className="text-[10px] font-black opacity-40 tabular-nums">{term.count}/{term.min}-{term.max}</span>
-    </div>
-  );
-};
-
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [inputs, setInputs] = useState<BlogInputs>({
@@ -86,11 +72,19 @@ const App: React.FC = () => {
   const [isChatting, setIsChatting] = useState(false);
   const [previewMode, setPreviewMode] = useState<'preview' | 'html'>('preview');
   const [copied, setCopied] = useState(false);
+  const [hasKey, setHasKey] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const selectedCountry = COUNTRIES.find(c => c.name === inputs.country) || COUNTRIES[0];
 
   useEffect(() => {
+    const checkKey = async () => {
+      if (window.aistudio) {
+        const selected = await window.aistudio.hasSelectedApiKey();
+        setHasKey(selected);
+      }
+    };
+    checkKey();
     const savedTheme = localStorage.getItem('superpage_theme') || 'dark';
     setTheme(savedTheme as any);
     if (savedTheme === 'dark') document.documentElement.classList.add('dark');
@@ -99,6 +93,13 @@ const App: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  const handleOpenKeySelection = async () => {
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+      setHasKey(true);
+    }
+  };
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
@@ -109,21 +110,43 @@ const App: React.FC = () => {
 
   const handleGenerate = async () => {
     if (!inputs.title.trim()) { setError("Focus keyword required."); return; }
+    
+    // Check key selection before proceeding
+    if (window.aistudio) {
+      const selected = await window.aistudio.hasSelectedApiKey();
+      if (!selected) {
+        await handleOpenKeySelection();
+        // Proceed anyway as per instructions (race condition mitigation)
+      }
+    }
+
     setLoading(true); setError(null);
     let msgIdx = 0;
     const interval = setInterval(() => setLoadingStep(LOADING_MESSAGES[msgIdx++ % LOADING_MESSAGES.length]), 4500);
+    
     try {
       const result = await generateFullSuperPage(inputs, setLoadingStep);
       const seo = await analyzeSEOContent(inputs.title, inputs.secondaryKeywords, inputs.country, inputs.city, result.html);
+      
       const newBlog: GeneratedBlog = {
         id: crypto.randomUUID(), timestamp: Date.now(), title: inputs.title,
         htmlContent: result.html, previewImageUrl: result.previewImageUrl,
         inputs: { ...inputs }, sources: result.sources, seoResult: seo
       };
+      
       setCurrentBlog(newBlog);
       setChatMessages([{ role: 'assistant', content: `SuperPage Live! 🚀 Research analyzed ${result.sources.length} live sources. SEO Score: ${seo.score}/100. Affiliate hooks ready.` }]);
-    } catch (err: any) { setError(err.message); }
-    finally { clearInterval(interval); setLoading(false); }
+    } catch (err: any) {
+      if (err.message.includes("Requested entity was not found")) {
+        setError("AI Model Access Error. Please re-select your API key.");
+        setHasKey(false);
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      clearInterval(interval);
+      setLoading(false);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -155,7 +178,16 @@ const App: React.FC = () => {
             <p className="text-[8px] font-black opacity-30 uppercase tracking-[0.4em] leading-none mt-1">AI Research Engine v5</p>
           </div>
         </div>
+        
         <div className="flex items-center gap-4">
+           {!hasKey && (
+             <button 
+               onClick={handleOpenKeySelection}
+               className="hidden md:flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 hover:text-white transition-all"
+             >
+               <Key className="w-3.5 h-3.5" /> Configure Key
+             </button>
+           )}
            <button onClick={toggleTheme} className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95">
              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
            </button>
@@ -167,6 +199,15 @@ const App: React.FC = () => {
           <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl p-8 sticky top-32">
               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-8 flex items-center gap-2"><Layout className="w-4 h-4" /> Blueprint</h2>
+              
+              {!hasKey && (
+                <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 mb-3">Google AI key required for high-tier research.</p>
+                  <button onClick={handleOpenKeySelection} className="w-full py-2 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase">Select Paid Project</button>
+                  <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="block text-center mt-2 text-[9px] underline opacity-40">Billing Docs</a>
+                </div>
+              )}
+
               <div className="space-y-6">
                 <div>
                   <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Main Target Keyword</label>
@@ -206,11 +247,6 @@ const App: React.FC = () => {
                 <div>
                   <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest flex items-center gap-2"><LinkIcon className="w-3 h-3 text-blue-500" /> Affiliate / Promo Link</label>
                   <input value={inputs.promotionLink} onChange={e => setInputs({...inputs, promotionLink: e.target.value})} placeholder="https://your-product-link.com" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none focus:border-blue-500" />
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">LSI Keywords</label>
-                  <input value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="semantic terms" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none focus:border-blue-500" />
                 </div>
               </div>
 
