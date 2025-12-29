@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage } from './types';
+import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage, KeywordMetric } from './types';
 import { generateFullSuperPage, analyzeSEOContent } from './services/geminiService';
 import { 
   Zap, Copy, Loader2, Moon, Sun,
@@ -9,10 +9,11 @@ import {
   Send, Smartphone, BarChart3, Layout, ChevronUp, ChevronDown, 
   Flame, MapPin, Link as LinkIcon, Globe, ExternalLink, Key, AlertCircle, Info,
   Download, History, Trash2, Plus, Target, Search, Database, Fingerprint, TrendingUp,
-  BrainCircuit, ShieldCheck, Heart
+  BrainCircuit, ShieldCheck, Heart, Info as InfoIcon
 } from 'lucide-react';
 
 const COUNTRIES: Country[] = [
+  { name: "Global (Universal Authority)", code: "GL", capital: "Worldwide", cities: ["N/A - Global Focus"] },
   { name: "United States", code: "US", capital: "Washington, D.C.", cities: ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Miami", "Seattle"] },
   { name: "United Kingdom", code: "GB", capital: "London", cities: ["London", "Manchester", "Birmingham", "Edinburgh", "Glasgow", "Liverpool"] },
   { name: "Canada", code: "CA", capital: "Ottawa", cities: ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton"] },
@@ -23,50 +24,14 @@ const COUNTRIES: Country[] = [
   { name: "Japan", code: "JP", capital: "Tokyo", cities: ["Tokyo", "Osaka", "Nagoya", "Yokohama", "Kyoto", "Fukuoka"] },
   { name: "Brazil", code: "BR", capital: "Brasília", cities: ["São Paulo", "Rio de Janeiro", "Brasília", "Salvador", "Fortaleza"] },
   { name: "Mexico", code: "MX", capital: "Mexico City", cities: ["Mexico City", "Guadalajara", "Monterrey", "Cancún", "Tijuana"] },
-  { name: "Italy", code: "IT", capital: "Rome", cities: ["Rome", "Milan", "Naples", "Turin", "Florence", "Venice"] },
-  { name: "Spain", code: "ES", capital: "Madrid", cities: ["Madrid", "Barcelona", "Valencia", "Seville", "Bilbao"] },
-  { name: "Singapore", code: "SG", capital: "Singapore", cities: ["Singapore"] },
-  { name: "UAE", code: "AE", capital: "Abu Dhabi", cities: ["Dubai", "Abu Dhabi", "Sharjah"] },
-  { name: "South Africa", code: "ZA", capital: "Pretoria", cities: ["Johannesburg", "Cape Town", "Durban"] },
-  { name: "Nigeria", code: "NG", capital: "Abuja", cities: ["Lagos", "Abuja", "Port Harcourt"] },
-  { name: "Netherlands", code: "NL", capital: "Amsterdam", cities: ["Amsterdam", "Rotterdam", "Utrecht"] },
-  { name: "Sweden", code: "SE", capital: "Stockholm", cities: ["Stockholm", "Gothenburg", "Malmö"] },
-  { name: "Switzerland", code: "CH", capital: "Bern", cities: ["Zurich", "Geneva", "Basel"] },
-  { name: "Norway", code: "NO", capital: "Oslo", cities: ["Oslo", "Bergen", "Trondheim"] },
-  { name: "Denmark", code: "DK", capital: "Copenhagen", cities: ["Copenhagen", "Aarhus", "Odense"] },
-  { name: "Finland", code: "FI", capital: "Helsinki", cities: ["Helsinki", "Espoo", "Tampere"] },
-  { name: "Ireland", code: "IE", capital: "Dublin", cities: ["Dublin", "Cork", "Limerick"] },
-  { name: "New Zealand", code: "NZ", capital: "Wellington", cities: ["Auckland", "Wellington", "Christchurch"] },
-  { name: "Portugal", code: "PT", capital: "Lisbon", cities: ["Lisbon", "Porto"] },
-  { name: "Greece", code: "GR", capital: "Athens", cities: ["Athens", "Thessaloniki"] },
-  { name: "Turkey", code: "TR", capital: "Ankara", cities: ["Istanbul", "Ankara", "Izmir"] },
-  { name: "South Korea", code: "KR", capital: "Seoul", cities: ["Seoul", "Busan", "Incheon"] },
-  { name: "Thailand", code: "TH", capital: "Bangkok", cities: ["Bangkok", "Phuket", "Chiang Mai"] },
-  { name: "Vietnam", code: "VN", capital: "Hanoi", cities: ["Ho Chi Minh City", "Hanoi"] },
-  { name: "Malaysia", code: "MY", capital: "Kuala Lumpur", cities: ["Kuala Lumpur", "Penang"] },
-  { name: "Indonesia", code: "ID", capital: "Jakarta", cities: ["Jakarta", "Bali", "Surabaya"] },
-  { name: "Philippines", code: "PH", capital: "Manila", cities: ["Manila", "Cebu City"] },
-  { name: "Saudi Arabia", code: "SA", capital: "Riyadh", cities: ["Riyadh", "Jeddah"] },
-  { name: "Israel", code: "IL", capital: "Jerusalem", cities: ["Tel Aviv", "Jerusalem"] },
-  { name: "Argentina", code: "AR", capital: "Buenos Aires", cities: ["Buenos Aires", "Córdoba"] },
-  { name: "Chile", code: "CL", capital: "Santiago", cities: ["Santiago", "Valparaíso"] },
-  { name: "Colombia", code: "CO", capital: "Bogotá", cities: ["Bogotá", "Medellín"] },
-  { name: "Egypt", code: "EG", capital: "Cairo", cities: ["Cairo", "Alexandria"] },
-  { name: "Morocco", code: "MA", capital: "Rabat", cities: ["Casablanca", "Marrakech"] },
-  { name: "Pakistan", code: "PK", capital: "Islamabad", cities: ["Karachi", "Lahore"] },
-  { name: "Poland", code: "PL", capital: "Warsaw", cities: ["Warsaw", "Kraków"] },
-  { name: "Belgium", code: "BE", capital: "Brussels", cities: ["Brussels", "Antwerp"] },
-  { name: "Austria", code: "AT", capital: "Vienna", cities: ["Vienna", "Salzburg"] },
-  { name: "Hungary", code: "HU", capital: "Budapest", cities: ["Budapest"] },
-  { name: "Czech Republic", code: "CZ", capital: "Prague", cities: ["Prague"] },
-  { name: "Romania", code: "RO", capital: "Bucharest", cities: ["Bucharest"] },
-  { name: "Ukraine", code: "UA", capital: "Kyiv", cities: ["Kyiv", "Lviv"] },
-  { name: "Kenya", code: "KE", capital: "Nairobi", cities: ["Nairobi"] },
-  { name: "Ethiopia", code: "ET", capital: "Addis Ababa", cities: ["Addis Ababa"] },
-  { name: "Ghana", code: "GH", capital: "Accra", cities: ["Accra"] },
-].sort((a, b) => a.name.localeCompare(b.name));
+].sort((a, b) => {
+  if (a.code === 'GL') return -1;
+  if (b.code === 'GL') return 1;
+  return a.name.localeCompare(b.name);
+});
 
 const getFlagEmoji = (countryCode: string) => {
+  if (countryCode === 'GL') return '🌐';
   const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
   return String.fromCodePoint(...codePoints);
 };
@@ -81,10 +46,74 @@ const LOADING_MESSAGES = [
   "Finalizing Anti-AI Protection Layers..."
 ];
 
+const ScoreGauge = ({ score }: { score: number }) => {
+  const radius = 80;
+  const strokeWidth = 14;
+  const normalizedScore = Math.min(Math.max(score, 0), 100);
+  const percentage = normalizedScore / 100;
+  const arcLength = Math.PI * radius;
+  const dashArray = arcLength;
+  const dashOffset = arcLength * (1 - percentage);
+
+  return (
+    <div className="relative flex flex-col items-center justify-center pt-6">
+      <svg width="200" height="120" viewBox="0 0 200 120">
+        {/* Background Arc */}
+        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="currentColor" strokeWidth={strokeWidth} className="text-slate-100 dark:text-slate-800" strokeLinecap="round" />
+        {/* Progress Arc */}
+        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#scoreGradient)" strokeWidth={strokeWidth} strokeDasharray={dashArray} strokeDashoffset={dashOffset} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+        <defs>
+          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ef4444" />
+            <stop offset="50%" stopColor="#f59e0b" />
+            <stop offset="100%" stopColor="#10b981" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute top-12 flex flex-col items-center">
+        <div className="flex items-center gap-1.5 text-blue-500 mb-1">
+          <Flame className="w-4 h-4" />
+          <span className="text-xs font-black uppercase tracking-widest">{score}</span>
+        </div>
+        <div className="text-4xl font-black tracking-tighter">{score}/100</div>
+      </div>
+    </div>
+  );
+};
+
+const AuditMetric = ({ label, current, min, max, icon: Icon }: any) => {
+  const isHigh = current > max;
+  const isLow = current < min;
+  return (
+    <div className="flex flex-col items-center p-4">
+      <div className="text-[10px] font-black uppercase opacity-30 tracking-widest mb-2">{label}</div>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xl font-black">{current.toLocaleString()}</span>
+        {isHigh && <ChevronUp className="w-4 h-4 text-red-500" />}
+        {isLow && <ChevronDown className="w-4 h-4 text-amber-500" />}
+        {!isHigh && !isLow && <Check className="w-4 h-4 text-emerald-500" />}
+      </div>
+      <div className="text-[9px] font-bold opacity-40 uppercase tracking-tighter">{min} - {max}</div>
+    </div>
+  );
+};
+
+const KeywordTag = ({ metric }: { metric: KeywordMetric }) => {
+  const borderColor = metric.difficulty === 'hard' ? 'border-red-400' : metric.difficulty === 'medium' ? 'border-amber-400' : 'border-emerald-400';
+  const bgColor = metric.difficulty === 'hard' ? 'bg-red-50/50 dark:bg-red-500/5' : metric.difficulty === 'medium' ? 'bg-amber-50/50 dark:bg-amber-500/5' : 'bg-emerald-50/50 dark:bg-emerald-500/5';
+  
+  return (
+    <div className={`px-4 py-2.5 rounded-full border ${borderColor} ${bgColor} flex items-center gap-2.5 transition-all hover:scale-105 cursor-default`}>
+      <span className="text-[11px] font-black tracking-tight">{metric.keyword}</span>
+      <span className="text-[9px] font-black opacity-40 uppercase tracking-tighter">{metric.count}/{metric.min}-{metric.max}</span>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [inputs, setInputs] = useState<BlogInputs>({
-    title: '', secondaryKeywords: '', country: 'United States', city: 'Washington, D.C.',
+    title: '', secondaryKeywords: '', country: 'Global (Universal Authority)', city: 'Worldwide',
     intent: SearchIntent.Informational, niche: 'Marketing',
     language: 'English', tone: 'Expert & Empathetic', audience: 'Professionals', 
     imageSource: 'nanobanana', imageUrl: '', promotionLink: '', customInstructions: ''
@@ -103,6 +132,7 @@ const App: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const selectedCountry = COUNTRIES.find(c => c.name === inputs.country) || COUNTRIES[0];
+  const isGlobal = selectedCountry.code === 'GL';
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('superpage_theme') || 'dark';
@@ -112,11 +142,8 @@ const App: React.FC = () => {
     if (savedHistory) setHistory(JSON.parse(savedHistory));
   }, []);
 
-  // Auto-scroll chat to bottom
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
   const handleGenerate = async () => {
@@ -147,7 +174,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Fixed: handleDownload implementation
   const handleDownload = () => {
     if (!currentBlog) return;
     const blob = new Blob([currentBlog.htmlContent], { type: 'text/html' });
@@ -161,31 +187,22 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Fixed: handleSendMessage implementation using Gemini
   const handleSendMessage = async () => {
     if (!chatInput.trim() || isChatting || !currentBlog) return;
-
     const userMsg = chatInput.trim();
     setChatInput('');
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsChatting(true);
-
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [
-          { role: 'user', parts: [{ text: `Original Content:\n${currentBlog.htmlContent.substring(0, 5000)}\n\nUser Question: ${userMsg}` }] }
-        ],
-        config: {
-          systemInstruction: "You are a World-Class Content Architect. Help the user improve or refine their SuperPage content. Provide professional, concise, and actionable advice or code snippets."
-        }
+        contents: [{ role: 'user', parts: [{ text: `Original Content:\n${currentBlog.htmlContent.substring(0, 5000)}\n\nUser Question: ${userMsg}` }] }],
+        config: { systemInstruction: "You are a World-Class Content Architect. Help improve or refine SuperPage content. Concise actionable advice." }
       });
-
-      const assistantMsg = response.text || "I apologize, but the neural terminal could not generate a response. Please try again.";
-      setChatMessages(prev => [...prev, { role: 'assistant', content: assistantMsg }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: response.text || "Neural failure." }]);
     } catch (err: any) {
-      setChatMessages(prev => [...prev, { role: 'assistant', content: `Terminal error: ${err.message || "Unknown error"}` }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: `Terminal error: ${err.message}` }]);
     } finally {
       setIsChatting(false);
     }
@@ -215,7 +232,7 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 max-w-[1850px] mx-auto w-full p-8 lg:p-12 relative">
-        <div className={`fixed inset-y-0 right-0 w-80 bg-white dark:bg-slate-900 shadow-2xl z-[150] transform transition-transform duration-500 ease-expo border-l border-slate-200 dark:border-slate-800 pt-32 px-8 ${showHistory ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`fixed inset-y-0 right-0 w-80 bg-white dark:bg-slate-900 shadow-2xl z-[150] transform transition-transform duration-500 border-l border-slate-200 dark:border-slate-800 pt-32 px-8 ${showHistory ? 'translate-x-0' : 'translate-x-full'}`}>
            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-600 mb-10">Vault of Authority</h3>
            <div className="space-y-5 max-h-[calc(100vh-280px)] overflow-y-auto custom-scrollbar pr-2">
              {history.map(item => (
@@ -243,18 +260,18 @@ const App: React.FC = () => {
                   <div>
                     <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Country Target</label>
                     <select value={inputs.country} onChange={e => { const c = COUNTRIES.find(x => x.name === e.target.value); if(c) setInputs({...inputs, country: c.name, city: c.capital}); }} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl pl-5 pr-3 py-4 font-black text-xs appearance-none">
-                      {COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                      {COUNTRIES.map(c => <option key={c.name} value={c.name}>{getFlagEmoji(c.code)} {c.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">Local Intent</label>
-                    <input list="city-list" value={inputs.city} onChange={e => setInputs({...inputs, city: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black text-xs focus:border-blue-500 outline-none" />
-                    <datalist id="city-list">{selectedCountry.cities.map(city => <option key={city} value={city} />)}</datalist>
+                    <label className={`text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest ${isGlobal ? 'opacity-10' : ''}`}>Local Intent</label>
+                    <input list="city-list" value={isGlobal ? 'Worldwide' : inputs.city} disabled={isGlobal} onChange={e => setInputs({...inputs, city: e.target.value})} className={`w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black text-xs focus:border-blue-500 outline-none transition-opacity ${isGlobal ? 'opacity-30 cursor-not-allowed' : ''}`} />
+                    {!isGlobal && <datalist id="city-list">{selectedCountry.cities.map(city => <option key={city} value={city} />)}</datalist>}
                   </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest">LSI / Secondary Terms</label>
-                  <textarea value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="Solar ROI, sustainable travel cost, etc..." className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black text-xs outline-none focus:border-blue-500 h-24 resize-none" />
+                  <textarea value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="Solar ROI, sustainable travel cost..." className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-black text-xs outline-none focus:border-blue-500 h-24 resize-none" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase opacity-40 mb-3 block tracking-widest flex items-center gap-2"><Heart className="w-3.5 h-3.5 text-emerald-500" /> Humanity Protocol</label>
@@ -299,23 +316,36 @@ const App: React.FC = () => {
                 <aside className="xl:col-span-5 space-y-10">
                   <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-10 sticky top-36 flex flex-col gap-10">
                       <div>
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] opacity-40 mb-8 flex items-center gap-3"><BrainCircuit className="w-5 h-5 text-blue-500" /> Neural Sentiment Monitor</h3>
-                        <div className="grid grid-cols-2 gap-6">
-                          <div className="bg-slate-50 dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 group hover:border-blue-500 transition-colors">
-                             <div className="flex justify-between items-start mb-4">
-                               <TrendingUp className="w-6 h-6 text-blue-500" />
-                               <span className="text-[11px] font-black text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full">{currentBlog.seoResult?.viralPotential}%</span>
-                             </div>
-                             <div className="text-3xl font-black mb-1">{currentBlog.seoResult?.score}</div>
-                             <div className="text-[9px] font-black opacity-30 uppercase tracking-widest">Authority Score</div>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] opacity-40 mb-4 flex items-center justify-center gap-3">
+                          Content Score <InfoIcon className="w-3.5 h-3.5" />
+                        </h3>
+                        <div className="border-b border-slate-100 dark:border-slate-800 pb-10">
+                           <ScoreGauge score={currentBlog.seoResult?.score || 0} />
+                           <p className="text-center text-blue-600 text-[10px] font-black uppercase tracking-widest mt-6 cursor-pointer hover:underline">Select competitors</p>
+                        </div>
+                        
+                        <div className="py-10 border-b border-slate-100 dark:border-slate-800">
+                          <h4 className="text-[11px] font-black uppercase tracking-[0.4em] opacity-40 mb-8 flex items-center gap-2">
+                             Structure <InfoIcon className="w-3.5 h-3.5" />
+                          </h4>
+                          <div className="grid grid-cols-2 gap-px bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden">
+                             <div className="bg-white dark:bg-slate-900"><AuditMetric label="Words" current={currentBlog.seoResult?.structure.words.current} min={currentBlog.seoResult?.structure.words.min} max={currentBlog.seoResult?.structure.words.max} /></div>
+                             <div className="bg-white dark:bg-slate-900"><AuditMetric label="H2" current={currentBlog.seoResult?.structure.h2.current} min={currentBlog.seoResult?.structure.h2.min} max={currentBlog.seoResult?.structure.h2.max} /></div>
+                             <div className="bg-white dark:bg-slate-900"><AuditMetric label="Paragraphs" current={currentBlog.seoResult?.structure.paragraphs.current} min={currentBlog.seoResult?.structure.paragraphs.min} max={currentBlog.seoResult?.structure.paragraphs.max} /></div>
+                             <div className="bg-white dark:bg-slate-900"><AuditMetric label="Images" current={currentBlog.seoResult?.structure.images.current} min={currentBlog.seoResult?.structure.images.min} max={currentBlog.seoResult?.structure.images.max} /></div>
                           </div>
-                          <div className="bg-slate-50 dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 group hover:border-emerald-500 transition-colors">
-                             <div className="flex justify-between items-start mb-4">
-                               <ShieldCheck className="w-6 h-6 text-emerald-500" />
-                               <span className="text-[11px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full">{currentBlog.seoResult?.humanityScore}%</span>
-                             </div>
-                             <div className="text-3xl font-black mb-1">{currentBlog.seoResult?.empathyLevel}%</div>
-                             <div className="text-[9px] font-black opacity-30 uppercase tracking-widest">Neural Empathy</div>
+                        </div>
+
+                        <div className="py-10">
+                          <div className="flex items-center gap-6 mb-8 overflow-x-auto custom-scrollbar pb-2 no-scrollbar">
+                             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-blue-600 border-b-2 border-blue-600 pb-2 flex-shrink-0">Keywords <span className="opacity-40 ml-2">{currentBlog.seoResult?.terms.length}</span></h4>
+                             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] opacity-40 pb-2 flex-shrink-0">Headings <span className="opacity-40 ml-2">3</span></h4>
+                             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] opacity-40 pb-2 flex-shrink-0">Meta Tags <span className="opacity-40 ml-2">3</span></h4>
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                             {currentBlog.seoResult?.terms.map((metric, idx) => (
+                               <KeywordTag key={idx} metric={metric} />
+                             ))}
                           </div>
                         </div>
                       </div>
@@ -339,11 +369,29 @@ const App: React.FC = () => {
                           {isChatting && <div className="flex gap-2 p-3"><div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" /><div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100" /></div>}
                           <div ref={chatEndRef} />
                         </div>
-                        <div className="flex gap-3 bg-white dark:bg-slate-950 p-2 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 focus-within:border-blue-500 focus-within:ring-4 ring-blue-500/10 transition-all shadow-inner">
+                        <div className="flex gap-3 bg-white dark:bg-slate-950 p-2 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 focus-within:border-blue-500 transition-all shadow-inner">
                            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Inject more empathy into H3..." className="flex-1 bg-transparent px-5 py-4 text-xs font-black outline-none placeholder:opacity-20" />
-                           <button onClick={handleSendMessage} disabled={!chatInput.trim() || isChatting} className="bg-blue-600 text-white w-14 h-14 rounded-xl flex items-center justify-center hover:bg-blue-700 active:scale-90 transition-all shadow-xl shadow-blue-600/30"><Send className="w-6 h-6" /></button>
+                           <button onClick={handleSendMessage} disabled={!chatInput.trim() || isChatting} className="bg-blue-600 text-white w-14 h-14 rounded-xl flex items-center justify-center shadow-xl shadow-blue-600/30 transition-all active:scale-90"><Send className="w-6 h-6" /></button>
                         </div>
                       </div>
+                  </div>
+                </aside>
+              </div>
+            ) : (
+              <div className="h-[950px] flex flex-col items-center justify-center border-4 border-dashed border-slate-200 dark:border-slate-800 rounded-[5rem] opacity-20">
+                <Layout className="w-32 h-32 mb-8" />
+                <p className="text-xl font-black uppercase tracking-[0.5em]">System Idle: Waiting for Blueprint</p>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
 
-                      <div className="space-y-5">
-                        <h
+      <footer className="p-10 text-center border-t border-slate-200 dark:border-slate-800">
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] opacity-30">© 2025 SuperPage Global Engine • Powered by Gemini Neural Architect</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
