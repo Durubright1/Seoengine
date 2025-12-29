@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage, KeywordMetric } from './types';
+import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage } from './types';
 import { generateFullSuperPage, analyzeSEOContent } from './services/geminiService';
 import { 
   Zap, Copy, Loader2, Moon, Sun,
   Check, Sparkles, MessageSquare, 
   Send, Smartphone, BarChart3, Layout, ChevronUp, ChevronDown, 
-  Flame, MapPin, Link as LinkIcon, Globe, ExternalLink, Key, AlertCircle
+  Flame, MapPin, Link as LinkIcon, Globe, ExternalLink, Key, AlertCircle, Info,
+  Download, History, Trash2, Plus
 } from 'lucide-react';
 
 const COUNTRIES: Country[] = [
@@ -64,6 +66,7 @@ const App: React.FC = () => {
     imageSource: 'nanobanana', imageUrl: '', promotionLink: '', customInstructions: ''
   });
   const [currentBlog, setCurrentBlog] = useState<GeneratedBlog | null>(null);
+  const [history, setHistory] = useState<GeneratedBlog[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -73,26 +76,32 @@ const App: React.FC = () => {
   const [previewMode, setPreviewMode] = useState<'preview' | 'html'>('preview');
   const [copied, setCopied] = useState(false);
   const [hasKey, setHasKey] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const selectedCountry = COUNTRIES.find(c => c.name === inputs.country) || COUNTRIES[0];
 
   useEffect(() => {
-    const checkKey = async () => {
+    const init = async () => {
       if (window.aistudio) {
         try {
           const selected = await window.aistudio.hasSelectedApiKey();
           setHasKey(selected);
-        } catch (e) {
-          console.error("Key check failed", e);
-        }
+        } catch (e) { console.error("Key check failed", e); }
       }
+      const savedTheme = localStorage.getItem('superpage_theme') || 'dark';
+      setTheme(savedTheme as any);
+      if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+
+      const savedHistory = localStorage.getItem('superpage_history');
+      if (savedHistory) setHistory(JSON.parse(savedHistory));
     };
-    checkKey();
-    const savedTheme = localStorage.getItem('superpage_theme') || 'dark';
-    setTheme(savedTheme as any);
-    if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+    init();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('superpage_history', JSON.stringify(history));
+  }, [history]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -115,13 +124,6 @@ const App: React.FC = () => {
   const handleGenerate = async () => {
     if (!inputs.title.trim()) { setError("Focus keyword required."); return; }
     
-    if (window.aistudio) {
-      const selected = await window.aistudio.hasSelectedApiKey();
-      if (!selected) {
-        await handleOpenKeySelection();
-      }
-    }
-
     setLoading(true); setError(null);
     let msgIdx = 0;
     const interval = setInterval(() => setLoadingStep(LOADING_MESSAGES[msgIdx++ % LOADING_MESSAGES.length]), 4500);
@@ -137,18 +139,32 @@ const App: React.FC = () => {
       };
       
       setCurrentBlog(newBlog);
+      setHistory(prev => [newBlog, ...prev].slice(0, 20));
       setChatMessages([{ role: 'assistant', content: `Generation complete! Research analyzed ${result.sources.length} sources. SEO Score: ${seo.score}/100.` }]);
     } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found")) {
+      if (err.message?.includes("Quota") || err.message?.includes("429")) {
+        setError("Rate Limit Reached: The Gemini Free Tier has a limit on requests per minute. Please wait 60 seconds or use a billing-enabled API key.");
+      } else if (err.message?.includes("Requested entity was not found")) {
         setError("AI Model Access Error. Please click 'Configure AI' to re-select your key.");
         setHasKey(false);
       } else {
-        setError(err.message || "An unexpected error occurred.");
+        setError(err.message || "An unexpected error occurred during research.");
       }
     } finally {
       clearInterval(interval);
       setLoading(false);
     }
+  };
+
+  const handleDownload = () => {
+    if (!currentBlog) return;
+    const blob = new Blob([currentBlog.htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentBlog.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleSendMessage = async () => {
@@ -161,23 +177,33 @@ const App: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const chat = ai.chats.create({ 
         model: 'gemini-3-flash-preview', 
-        config: { systemInstruction: `You are an SEO Strategist. Helping optimize "${currentBlog.title}".` } 
+        config: { systemInstruction: `You are an SEO Strategist. Helping optimize "${currentBlog.title}". Use a human, professional tone.` } 
       });
       const response = await chat.sendMessage({ message: content });
       setChatMessages(prev => [...prev, { role: 'assistant', content: response.text || 'Thinking complete.' }]);
     } catch { 
-      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Connection lost. Try again.' }]); 
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Connection lost or quota reached. Try again in a minute.' }]); 
     } finally { setIsChatting(false); }
   };
 
+  const clearHistory = () => {
+    if (confirm("Clear all locally saved generations?")) {
+      setHistory([]);
+      localStorage.removeItem('superpage_history');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#050608] flex flex-col font-jakarta transition-colors duration-500">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#050608] flex flex-col font-jakarta transition-colors duration-500 selection:bg-blue-500 selection:text-white">
       <header className="h-20 lg:h-24 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#050608]/80 backdrop-blur-2xl sticky top-0 z-[100] px-8 lg:px-12 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="bg-blue-600 p-2.5 rounded-2xl shadow-xl shadow-blue-600/20"><Zap className="text-white w-6 h-6 fill-current" /></div>
           <div>
-            <h1 className="text-xl font-black tracking-tighter uppercase">SuperPage <span className="text-blue-600 italic">Viral</span></h1>
-            <p className="text-[8px] font-black opacity-30 uppercase tracking-[0.4em] leading-none mt-1">AI Research Engine v5</p>
+            <h1 className="text-xl font-black tracking-tighter uppercase flex items-center gap-2">
+              SuperPage <span className="text-blue-600 italic">Viral</span>
+              <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 text-[9px] tracking-widest font-bold border border-blue-500/20 ml-2 uppercase">Zero-Cost</span>
+            </h1>
+            <p className="text-[8px] font-black opacity-30 uppercase tracking-[0.4em] leading-none mt-1">AI SEO Architect v5.1</p>
           </div>
         </div>
         
@@ -185,7 +211,7 @@ const App: React.FC = () => {
            {!hasKey ? (
              <button 
                onClick={handleOpenKeySelection}
-               className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all animate-bounce"
+               className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all hover:scale-105"
              >
                <Key className="w-3.5 h-3.5" /> Configure AI
              </button>
@@ -194,13 +220,48 @@ const App: React.FC = () => {
                <Check className="w-3 h-3" /> System Ready
              </div>
            )}
+           <button 
+             onClick={() => setShowHistory(!showHistory)} 
+             className={`w-12 h-12 rounded-2xl border flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95 ${showHistory ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}
+           >
+             <History className="w-5 h-5" />
+           </button>
            <button onClick={toggleTheme} className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95">
              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
            </button>
         </div>
       </header>
 
-      <main className="flex-1 max-w-[1750px] mx-auto w-full p-6 lg:p-10">
+      <main className="flex-1 max-w-[1750px] mx-auto w-full p-6 lg:p-10 relative">
+        <div className={`fixed inset-y-0 right-0 w-80 bg-white dark:bg-slate-900 shadow-2xl z-[150] transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800 pt-24 px-6 ${showHistory ? 'translate-x-0' : 'translate-x-full'}`}>
+           <div className="flex items-center justify-between mb-8">
+             <h3 className="text-xs font-black uppercase tracking-widest text-blue-600">Local Cache</h3>
+             <button onClick={clearHistory} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+           </div>
+           <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto custom-scrollbar pr-2">
+             {history.length === 0 ? (
+               <div className="text-center py-20 opacity-20">
+                 <History className="w-12 h-12 mx-auto mb-4" />
+                 <p className="text-[10px] font-black uppercase tracking-widest">No history yet</p>
+               </div>
+             ) : (
+               history.map(item => (
+                 <button 
+                   key={item.id} 
+                   onClick={() => { setCurrentBlog(item); setShowHistory(false); }}
+                   className={`w-full text-left p-4 rounded-2xl border transition-all hover:scale-[1.02] ${currentBlog?.id === item.id ? 'bg-blue-600 border-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}
+                 >
+                   <p className="text-[11px] font-black truncate mb-1">{item.title}</p>
+                   <p className="text-[9px] opacity-60 font-bold uppercase tracking-widest">{new Date(item.timestamp).toLocaleDateString()}</p>
+                 </button>
+               ))
+             )}
+           </div>
+           <button onClick={() => { setCurrentBlog(null); setShowHistory(false); }} className="absolute bottom-10 left-6 right-6 py-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+             <Plus className="w-4 h-4" /> New Blueprint
+           </button>
+        </div>
+
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-10">
           <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl p-8 sticky top-32">
@@ -265,6 +326,11 @@ const App: React.FC = () => {
                   <><Sparkles className="w-4 h-4 mr-2 mb-1" /> RESEARCH & GENERATE</>
                 )}
               </button>
+              
+              <div className="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 flex gap-3 items-center">
+                <Info className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <p className="text-[8px] font-black opacity-30 uppercase tracking-widest leading-relaxed">System Info: Optimized for Gemini 3 Flash to ensure zero-cost reliability.</p>
+              </div>
             </div>
           </aside>
 
@@ -273,17 +339,22 @@ const App: React.FC = () => {
               <div className="grid xl:grid-cols-12 gap-8 lg:gap-10">
                 <div className="xl:col-span-7 space-y-8">
                   <div className="bg-white dark:bg-[#0a0c10] rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden min-h-[900px] flex flex-col">
-                    <div className="px-10 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/40">
+                    <div className="px-6 sm:px-10 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-4 justify-between items-center bg-slate-50/50 dark:bg-slate-950/40">
                        <div className="flex bg-white dark:bg-slate-950 rounded-2xl p-1 shadow-sm border border-slate-200 dark:border-slate-800">
-                          <button onClick={() => setPreviewMode('preview')} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${previewMode === 'preview' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Visual</button>
-                          <button onClick={() => setPreviewMode('html')} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${previewMode === 'html' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Source Code</button>
+                          <button onClick={() => setPreviewMode('preview')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${previewMode === 'preview' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Visual</button>
+                          <button onClick={() => setPreviewMode('html')} className={`px-4 sm:px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${previewMode === 'html' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Source</button>
                        </div>
-                       <button onClick={() => { navigator.clipboard.writeText(currentBlog.htmlContent); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="px-8 py-4 bg-slate-900 dark:bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase flex items-center gap-3 shadow-xl transition-all active:scale-95">
-                          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? 'COPIED' : 'COPY HTML'}
-                       </button>
+                       <div className="flex items-center gap-3">
+                         <button onClick={handleDownload} className="w-12 h-12 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl flex items-center justify-center transition-all">
+                           <Download className="w-5 h-5 opacity-60" />
+                         </button>
+                         <button onClick={() => { navigator.clipboard.writeText(currentBlog.htmlContent); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="px-6 sm:px-8 py-4 bg-slate-900 dark:bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase flex items-center gap-3 shadow-xl transition-all active:scale-95">
+                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? 'COPIED' : 'COPY HTML'}
+                         </button>
+                       </div>
                     </div>
                     <div className="p-10 lg:p-14 flex-1 overflow-y-auto custom-scrollbar">
-                      {previewMode === 'preview' ? <article className="blogger-preview animate-in" dangerouslySetInnerHTML={{ __html: currentBlog.htmlContent }} /> : <pre className="text-xs font-mono bg-slate-950 text-blue-400/80 p-10 rounded-3xl whitespace-pre-wrap leading-relaxed border border-slate-800 h-full">{currentBlog.htmlContent}</pre>}
+                      {previewMode === 'preview' ? <article className="blogger-preview animate-in" dangerouslySetInnerHTML={{ __html: currentBlog.htmlContent }} /> : <pre className="text-xs font-mono bg-slate-950 text-blue-400/80 p-10 rounded-3xl whitespace-pre-wrap leading-relaxed border border-slate-800 h-full overflow-x-auto">{currentBlog.htmlContent}</pre>}
                     </div>
                   </div>
                 </div>
@@ -346,13 +417,13 @@ const App: React.FC = () => {
                             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20"><MessageSquare className="w-6 h-6 text-white" /></div>
                             <div>
                               <h4 className="text-[11px] font-black uppercase tracking-widest">SEO Strategist</h4>
-                              <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Chat for micro-tweaks</p>
+                              <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Micro-adjustment Terminal</p>
                             </div>
                           </div>
                           <div className="max-h-[250px] overflow-y-auto custom-scrollbar space-y-4 p-1">
                             {chatMessages.map((m, i) => (
                               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in`}>
-                                <div className={`max-w-[85%] px-5 py-3.5 rounded-2xl text-[11px] font-bold leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-900 text-white dark:bg-blue-600' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700'}`}>
+                                <div className={`max-w-[85%] px-5 py-3.5 rounded-2xl text-[11px] font-bold leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-900 text-white dark:bg-blue-600 shadow-blue-600/20' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700'}`}>
                                   {m.content}
                                 </div>
                               </div>
@@ -360,9 +431,9 @@ const App: React.FC = () => {
                             {isChatting && <div className="flex gap-2 p-2"><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce delay-100" /></div>}
                             <div ref={chatEndRef} />
                           </div>
-                          <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
+                          <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner focus-within:border-blue-500 transition-colors">
                              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Ask for adjustments..." className="flex-1 bg-transparent px-4 py-3 text-xs font-bold outline-none" />
-                             <button onClick={handleSendMessage} disabled={!chatInput.trim() || isChatting} className="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-90"><Send className="w-5 h-5" /></button>
+                             <button onClick={handleSendMessage} disabled={!chatInput.trim() || isChatting} className="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-90 hover:bg-blue-700 shadow-lg shadow-blue-600/30"><Send className="w-5 h-5" /></button>
                           </div>
                         </div>
                       </div>
@@ -371,7 +442,7 @@ const App: React.FC = () => {
                 </aside>
               </div>
             ) : (
-              <div className="h-[900px] bg-white dark:bg-slate-900/20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[4rem] flex flex-col items-center justify-center text-center px-12 transition-all">
+              <div className="h-[800px] lg:h-[900px] bg-white dark:bg-slate-900/20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[4rem] flex flex-col items-center justify-center text-center px-12 transition-all">
                 <div className="bg-white dark:bg-slate-900 p-16 rounded-[4rem] mb-10 shadow-inner border border-slate-50 dark:border-slate-800 animate-pulse"><Smartphone className="w-32 h-32 opacity-10" /></div>
                 <h3 className="text-3xl font-black opacity-20 uppercase tracking-tighter mb-4 italic">Blueprint Required</h3>
                 <p className="text-[10px] font-black opacity-10 uppercase tracking-[0.4em]">Initialize research parameters to begin the SuperPage generation sequence.</p>
@@ -384,7 +455,7 @@ const App: React.FC = () => {
       <footer className="py-20 border-t border-slate-200 dark:border-slate-800 text-center bg-white dark:bg-[#050608]/40">
         <div className="flex flex-col items-center gap-6">
           <Zap className="w-6 h-6 text-blue-600 fill-current opacity-20" />
-          <p className="text-[9px] font-black opacity-10 uppercase tracking-[0.6em] max-w-xl mx-auto px-6">SuperPage v5 • Zero Cost PWA Intelligence • 100% Humanized Affiliate Strategy</p>
+          <p className="text-[9px] font-black opacity-10 uppercase tracking-[0.6em] max-w-xl mx-auto px-6">SuperPage v5.1 • Zero Cost PWA Intelligence • SEO Automation Expert</p>
         </div>
       </footer>
     </div>
