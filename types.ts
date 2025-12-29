@@ -20,6 +20,7 @@ export interface BlogInputs {
   imageUrl: string;
   promotionLink: string;
   customInstructions: string;
+  activeProtocols: string[]; // New: Tracks active humanization protocols
 }
 
 export interface GroundingSource {
@@ -64,9 +65,9 @@ export interface KeywordMetric {
 
 export interface SEOScoreResult {
   score: number;
-  humanityScore: number; // New: Measures anti-AI detection
-  burstinessIndex: number; // New: Sentence variance
-  authoritySignal: number;
+  humanityScore: number; 
+  burstinessIndex: number; 
+  authoritySignal: number; 
   sentiment: 'positive' | 'neutral' | 'analytical';
   structure: {
     words: { current: number; min: number; max: number };
