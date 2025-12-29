@@ -1,5 +1,5 @@
 
-export type ImageSource = 'nanobanana' | 'pexels' | 'custom';
+export type ImageSource = 'pexels' | 'unsplash' | 'custom';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -57,16 +57,17 @@ export interface KeywordMetric {
   count: number;
   min: number;
   max: number;
+  volume: number;
+  difficulty: number; // 0-100
   status: 'low' | 'optimal' | 'high' | 'missing';
-  difficulty: 'easy' | 'medium' | 'hard';
 }
 
 export interface SEOScoreResult {
   score: number;
-  viralPotential: number; 
-  humanityScore: number; 
-  empathyLevel: number; 
-  authoritySignal: number; 
+  humanityScore: number; // New: Measures anti-AI detection
+  burstinessIndex: number; // New: Sentence variance
+  authoritySignal: number;
+  sentiment: 'positive' | 'neutral' | 'analytical';
   structure: {
     words: { current: number; min: number; max: number };
     h2: { current: number; min: number; max: number };
