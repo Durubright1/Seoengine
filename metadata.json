@@ -1,6 +1,6 @@
 {
-  "name": "Instant SuperPage PWA",
-  "description": "A high-performance SEO blog generator that creates Blogger-ready HTML pages instantly using Gemini AI.",
+  "name": "SuperPage Global Engine",
+  "description": "Professional-grade SEO automation PWA with real-time research and local intent grounding.",
   "requestFramePermissions": [
     "geolocation"
   ]
