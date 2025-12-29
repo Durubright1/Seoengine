@@ -42,12 +42,26 @@
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
     <script>
+      /**
+       * PWA Service Worker Registration
+       * Optimized to handle cross-origin preview environments like AI Studio.
+       */
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Changed from /service-worker.js to service-worker.js for relative path safety
-          navigator.serviceWorker.register('service-worker.js')
-            .then(reg => console.log('SW Registered', reg.scope))
-            .catch(err => console.log('SW Registration Failed', err));
+          // Check if we are in a context that likely supports Service Workers (Same-Origin)
+          // We use a dot-relative path and explicit scope to satisfy browser security.
+          navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+            .then(reg => {
+              console.log('%c[PWA]%c ServiceWorker registered successfully.', 'color: #2563eb; font-weight: bold;', 'color: inherit;', reg.scope);
+            })
+            .catch(err => {
+              // Handle origin mismatch errors specifically for environments like ai.studio
+              if (err.name === 'SecurityError' || err.message.includes('origin')) {
+                console.warn('%c[PWA]%c ServiceWorker skipped: Running in a cross-origin or restricted preview environment.', 'color: #f59e0b; font-weight: bold;', 'color: inherit;');
+              } else {
+                console.error('[PWA] ServiceWorker registration failed:', err);
+              }
+            });
         });
       }
     </script>
