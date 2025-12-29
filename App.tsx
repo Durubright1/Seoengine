@@ -1,13 +1,12 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage, KeywordMetric } from './types';
+import { BlogInputs, GeneratedBlog, SearchIntent, Country, SEOScoreResult, ChatMessage, KeywordMetric, GroundingSource } from './types';
 import { generateFullSuperPage, analyzeSEOContent } from './services/geminiService';
 import { 
   Zap, Copy, Loader2, Moon, Sun,
   Check, Sparkles, MessageSquare, 
   Send, Smartphone, BarChart3, Layout, ChevronUp, ChevronDown, 
-  Target, Flame, HelpCircle, MapPin, Link as LinkIcon, Globe
+  Target, Flame, HelpCircle, MapPin, Link as LinkIcon, Globe, ExternalLink
 } from 'lucide-react';
 
 const COUNTRIES: Country[] = [
@@ -19,14 +18,8 @@ const COUNTRIES: Country[] = [
   { name: "France", code: "FR", capital: "Paris", cities: ["Paris", "Marseille", "Lyon", "Toulouse", "Nice", "Nantes", "Strasbourg", "Montpellier", "Bordeaux"] },
   { name: "India", code: "IN", capital: "New Delhi", cities: ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Ahmedabad", "Chennai", "Kolkata", "Surat", "Pune", "Jaipur"] },
   { name: "Japan", code: "JP", capital: "Tokyo", cities: ["Tokyo", "Yokohama", "Osaka", "Nagoya", "Sapporo", "Fukuoka", "Kobe", "Kyoto", "Saitama"] },
-  { name: "Brazil", code: "BR", capital: "Brasilia", cities: ["São Paulo", "Rio de Janeiro", "Brasília", "Salvador", "Fortaleza", "Belo Horizonte", "Manaus", "Curitiba"] },
-  { name: "Mexico", code: "MX", capital: "Mexico City", cities: ["Mexico City", "Tijuana", "Ecatepec", "León", "Puebla", "Ciudad Juárez", "Guadalajara"] },
-  { name: "Spain", code: "ES", capital: "Madrid", cities: ["Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Málaga", "Murcia", "Palma"] },
-  { name: "Italy", code: "IT", capital: "Rome", cities: ["Rome", "Milan", "Naples", "Turin", "Palermo", "Genoa", "Bologna", "Florence"] },
   { name: "Singapore", code: "SG", capital: "Singapore", cities: ["Singapore"] },
-  { name: "Netherlands", code: "NL", capital: "Amsterdam", cities: ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven", "Tilburg"] },
   { name: "United Arab Emirates", code: "AE", capital: "Abu Dhabi", cities: ["Dubai", "Abu Dhabi", "Sharjah", "Al Ain", "Ajman"] },
-  { name: "South Africa", code: "ZA", capital: "Pretoria", cities: ["Johannesburg", "Cape Town", "Durban", "Pretoria", "Port Elizabeth", "Soweto"] },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
 const getFlagEmoji = (countryCode: string) => {
@@ -44,7 +37,6 @@ const LOADING_MESSAGES = [
   "Integrating Monetization Anchors..."
 ];
 
-// Fixed StructuralMetric component with proper typing to avoid React key prop errors
 const StructuralMetric: React.FC<{ label: string; current: number | undefined; range: { min: number; max: number } | undefined }> = ({ label, current, range }) => {
   if (!range) return null;
   const curr = current ?? 0;
@@ -63,7 +55,6 @@ const StructuralMetric: React.FC<{ label: string; current: number | undefined; r
   );
 };
 
-// Fixed KeywordPill component with proper typing to avoid React key prop errors
 const KeywordPill: React.FC<{ term: KeywordMetric }> = ({ term }) => {
   const diffColor: Record<string, string> = {
     easy: 'border-emerald-500 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20',
@@ -130,7 +121,7 @@ const App: React.FC = () => {
         inputs: { ...inputs }, sources: result.sources, seoResult: seo
       };
       setCurrentBlog(newBlog);
-      setChatMessages([{ role: 'assistant', content: `SuperPage Live! 🚀 Research found trending gaps for ${inputs.city}. SEO Score: ${seo.score}/100. Affiliate link integrated. Ready for tweaks?` }]);
+      setChatMessages([{ role: 'assistant', content: `SuperPage Live! 🚀 Research analyzed ${result.sources.length} live sources. SEO Score: ${seo.score}/100. Affiliate hooks ready.` }]);
     } catch (err: any) { setError(err.message); }
     finally { clearInterval(interval); setLoading(false); }
   };
@@ -218,15 +209,12 @@ const App: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Secondary Keywords (LSI)</label>
-                  <input value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="semantic, related, terms" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none focus:border-blue-500" />
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">Custom Instructions</label>
-                  <textarea rows={4} value={inputs.customInstructions} onChange={e => setInputs({...inputs, customInstructions: e.target.value})} placeholder="Research specifics, brand tone, or structural needs..." className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none resize-none focus:border-blue-500" />
+                  <label className="text-[9px] font-black uppercase opacity-40 mb-2 block tracking-widest">LSI Keywords</label>
+                  <input value={inputs.secondaryKeywords} onChange={e => setInputs({...inputs, secondaryKeywords: e.target.value})} placeholder="semantic terms" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3.5 font-bold outline-none focus:border-blue-500" />
                 </div>
               </div>
+
+              {error && <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase">{error}</div>}
 
               <button onClick={handleGenerate} disabled={loading} className="w-full mt-8 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.5rem] font-black text-xs tracking-[0.2em] shadow-2xl shadow-blue-500/30 flex flex-col items-center justify-center transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-95">
                 {loading ? (
@@ -268,7 +256,7 @@ const App: React.FC = () => {
                         <h3 className="text-sm font-black uppercase tracking-widest opacity-60">SEO Health Monitor</h3>
                         <div className="flex items-center gap-2">
                            <Globe className="w-4 h-4 text-blue-500" />
-                           <span className="text-[10px] font-black uppercase">{currentBlog.sources.length} Sources Found</span>
+                           <span className="text-[10px] font-black uppercase">{currentBlog.sources.length} Research Signals</span>
                         </div>
                       </div>
                       
@@ -280,18 +268,18 @@ const App: React.FC = () => {
                               <defs><linearGradient id="scoreGradient"><stop offset="0%" stopColor="#ef4444" /><stop offset="50%" stopColor="#f59e0b" /><stop offset="100%" stopColor="#22c55e" /></linearGradient></defs>
                            </svg>
                            <div className="absolute inset-0 flex flex-col items-center justify-end">
-                             <div className="flex items-center gap-1 mb-1"><Flame className="w-4 h-4 text-orange-500 animate-pulse" /><span className="text-[10px] font-black opacity-40 uppercase tracking-widest">Rankability</span></div>
+                             <div className="flex items-center gap-1 mb-1"><Flame className="w-4 h-4 text-orange-500 animate-pulse" /><span className="text-[10px] font-black opacity-40 uppercase tracking-widest">Authority</span></div>
                              <div className="text-6xl font-black tracking-tighter tabular-nums">{currentBlog.seoResult?.score}<span className="text-base opacity-20 font-bold">/100</span></div>
                            </div>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/10 px-5 py-2 rounded-full border border-blue-100 dark:border-blue-800/50">
-                          <MapPin className="w-3.5 h-3.5" /> Local Authority: {inputs.city}, {inputs.country}
+                          <MapPin className="w-3.5 h-3.5" /> {inputs.city}, {inputs.country}
                         </div>
                       </div>
 
                       <div className="p-8 space-y-10">
                         <div>
-                          <h4 className="text-[11px] font-black uppercase tracking-widest opacity-40 mb-6 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Structural Integrity</h4>
+                          <h4 className="text-[11px] font-black uppercase tracking-widest opacity-40 mb-6 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Content Depth</h4>
                           <div className="grid grid-cols-2 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden">
                              <StructuralMetric label="Words" current={currentBlog.seoResult?.structure.words.current} range={currentBlog.seoResult?.structure.words} />
                              <StructuralMetric label="H2 Tags" current={currentBlog.seoResult?.structure.h2.current} range={currentBlog.seoResult?.structure.h2} />
@@ -300,15 +288,29 @@ const App: React.FC = () => {
                           </div>
                         </div>
 
+                        {currentBlog.sources.length > 0 && (
+                          <div className="space-y-4">
+                            <h4 className="text-[11px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Globe className="w-4 h-4" /> Verified Sources</h4>
+                            <div className="space-y-2">
+                              {currentBlog.sources.slice(0, 5).map((source, i) => (
+                                <a key={i} href={source.uri} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-blue-500 transition-colors group">
+                                  <span className="text-[11px] font-bold truncate max-w-[200px]">{source.title}</span>
+                                  <ExternalLink className="w-3 h-3 opacity-20 group-hover:opacity-100 transition-opacity" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="bg-slate-50 dark:bg-slate-950/40 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 space-y-6">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20"><MessageSquare className="w-6 h-6 text-white" /></div>
                             <div>
-                              <h4 className="text-[11px] font-black uppercase tracking-widest">AI Strategist Chat</h4>
-                              <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Ask to tweak CTAs or add FAQs</p>
+                              <h4 className="text-[11px] font-black uppercase tracking-widest">SEO Strategist</h4>
+                              <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Chat for micro-tweaks</p>
                             </div>
                           </div>
-                          <div className="max-h-[300px] overflow-y-auto custom-scrollbar space-y-4 p-1">
+                          <div className="max-h-[250px] overflow-y-auto custom-scrollbar space-y-4 p-1">
                             {chatMessages.map((m, i) => (
                               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in`}>
                                 <div className={`max-w-[85%] px-5 py-3.5 rounded-2xl text-[11px] font-bold leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-slate-900 text-white dark:bg-blue-600' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700'}`}>
@@ -320,15 +322,8 @@ const App: React.FC = () => {
                             <div ref={chatEndRef} />
                           </div>
                           <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
-                             <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Tweak monetization..." className="flex-1 bg-transparent px-4 py-3 text-xs font-bold outline-none" />
+                             <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Ask for adjustments..." className="flex-1 bg-transparent px-4 py-3 text-xs font-bold outline-none" />
                              <button onClick={handleSendMessage} disabled={!chatInput.trim() || isChatting} className="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-90"><Send className="w-5 h-5" /></button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h4 className="text-[11px] font-black uppercase tracking-widest opacity-40 mb-4">Semantic Terms</h4>
-                          <div className="flex flex-wrap gap-2.5">
-                            {currentBlog.seoResult?.terms.map((t, i) => <KeywordPill key={i} term={t} />)}
                           </div>
                         </div>
                       </div>
@@ -350,7 +345,7 @@ const App: React.FC = () => {
       <footer className="py-20 border-t border-slate-200 dark:border-slate-800 text-center bg-white dark:bg-[#050608]/40">
         <div className="flex flex-col items-center gap-6">
           <Zap className="w-6 h-6 text-blue-600 fill-current opacity-20" />
-          <p className="text-[9px] font-black opacity-10 uppercase tracking-[0.6em] max-w-xl mx-auto px-6">SuperPage v5 • World-Class Intelligence Architecture • 100% Humanized Affiliate Strategy</p>
+          <p className="text-[9px] font-black opacity-10 uppercase tracking-[0.6em] max-w-xl mx-auto px-6">SuperPage v5 • Zero Cost PWA Intelligence • 100% Humanized Affiliate Strategy</p>
         </div>
       </footer>
     </div>
