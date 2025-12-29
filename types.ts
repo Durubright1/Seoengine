@@ -65,8 +65,8 @@ export interface SEOScoreResult {
   score: number;
   viralPotential: number; 
   humanityScore: number; 
-  empathyLevel: number; // New: 0-100 (Sentiment depth)
-  authoritySignal: number; // New: 0-100 (Expertise markers)
+  empathyLevel: number; 
+  authoritySignal: number; 
   structure: {
     words: { current: number; min: number; max: number };
     h2: { current: number; min: number; max: number };
